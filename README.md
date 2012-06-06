@@ -19,5 +19,5 @@ Other features to come.
 
 ## Dependencies
 
-* Requires all the [dependencies of GeoDjango](https://docs.djangoproject.com/en/dev/ref/contrib/gis/install/#requirements) ( GEOS, PROJ.4, PostGIS)
+* Requires all the [dependencies of GeoDjango](https://docs.djangoproject.com/en/dev/ref/contrib/gis/install/#requirements) ( GEOS, PROJ.4, PostGIS), as well as GDAL.
 * expects to run with a PostGIS-enabled database
