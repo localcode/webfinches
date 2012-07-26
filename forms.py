@@ -30,5 +30,12 @@ class ShpUploadForm(forms.Form):
     dbf_file = forms.FileField(label='.dbf')
     shx_file = forms.FileField(label='.shx')
 
+
+class ZipUploadForm(forms.Form):
+    """For uploading .zip files that contain .shp files"""
+    zip_file = forms.FileField(label='.zip')
+
+
 ShpFormSet = formset_factory(ShpUploadForm, extra=10)
+ZipFormSet = formset_factory(ZipUploadForm, extra=10)
 

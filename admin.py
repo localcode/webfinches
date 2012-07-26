@@ -1,4 +1,4 @@
-from layers.models import *
+from webfinches.models import *
 from django.contrib import admin
 
 admin.site.register( DataLayer )

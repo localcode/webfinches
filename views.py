@@ -9,8 +9,8 @@ from django.contrib.auth.models import User
 
 from django.contrib.gis.gdal import DataSource
 
-from layers.forms import ShpUploadForm, ShpFormSet
-from layers.models import *
+from webfinches.forms import ShpUploadForm, ShpFormSet, ZipFormSet
+from webfinches.models import *
 
 def send_file_to_db(fobj):
     pass
@@ -30,11 +30,11 @@ def handleShpFiles(username, layername, shp, dbf, prj, shx):
     return os.path.join(path, '%s.shp' % layername)
 
 def index(request):
-    """A view for browsing the existing layers.
+    """A view for browsing the existing webfinches.
     """
     return render_to_response(
-            'layers/index.html',
-            {'layers':DataLayer.objects.all()},
+            'webfinches/index.html',
+            {'webfinches':DataLayer.objects.all()},
             )
 
 def upload(request):
@@ -43,7 +43,7 @@ def upload(request):
     user=User.objects.get(username='localcode')
     #print request
     if request.method == 'POST':
-        formset = ShpFormSet(request.POST, request.FILES)
+        formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
                 data = form.cleaned_data
@@ -92,17 +92,29 @@ def upload(request):
 
 
     else:
-        formset = ShpFormSet()
+        formset = ZipFormSet()
 
     c = {
             'formset':formset,
             }
-    return render_to_response('layers/upload.html',
+    return render_to_response(
+            'webfinches/upload.html',
             RequestContext(request, c),
             )
 
 def review(request):
-    pass
+    # do someting / get something
+    layers = Layer.objects.all()
+    # define a context for the template
+    context = {
+            'layers':layers,
+            'user': request.User,
+            }
+    # return a rendered template using the context
+    return render_to_response(
+            'webfinches/review.html',
+            context,
+            )
 
 
 # AJAX views for processing file data
