@@ -3,8 +3,12 @@ from django.forms import widgets
 from django.forms.formsets import formset_factory
 
 
-class ShpUploadForm(forms.Form):
-    "for the upload"
+class ZipUploadForm(forms.Form):
+    """For uploading .zip files that contain .shp files"""
+    zip_file = forms.FileField(label='.zip')
+
+class LayerReviewForm(forms.Form):
+    """For editing and configuring the layer information for each layer."""
     layer_name = forms.CharField(max_length=200,
             widget=forms.TextInput(attrs={
                 'class':'name_field',
@@ -25,17 +29,8 @@ class ShpUploadForm(forms.Form):
                 'class':'z_field',
                 }), required=False,
             )
-    shp_file = forms.FileField(label='.shp')
-    prj_file = forms.FileField(label='.prj', required=False)
-    dbf_file = forms.FileField(label='.dbf')
-    shx_file = forms.FileField(label='.shx')
 
 
-class ZipUploadForm(forms.Form):
-    """For uploading .zip files that contain .shp files"""
-    zip_file = forms.FileField(label='.zip')
-
-
-ShpFormSet = formset_factory(ShpUploadForm, extra=10)
 ZipFormSet = formset_factory(ZipUploadForm, extra=10)
+LayerReviewFormSet = formset_factory(LayerReviewForm, extra=0)
 

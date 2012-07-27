@@ -35,8 +35,13 @@ class DataLayer(Named, Authored, Dated, Noted):
     path = models.FilePathField()
     geometry_type = models.CharField(max_length=50)
     srs = models.CharField(max_length=50)
+    upload = models.ForeignKey('UploadEvent')
     def __unicode__(self):
         return "DataLayer: %s" % self.name
+
+class UploadEvent(models.Model):
+    user = models.ForeignKey(User)
+    date = models.DateTimeField(auto_now_add=True)
 
 class LayerBox(models.Model):
     layer = models.OneToOneField(DataLayer)

@@ -7,9 +7,8 @@ from django.template import RequestContext
 
 from django.contrib.auth.models import User
 
-from django.contrib.gis.gdal import DataSource
 
-from webfinches.forms import ShpUploadForm, ShpFormSet, ZipFormSet
+from webfinches.forms import *
 from webfinches.models import *
 
 def send_file_to_db(fobj):
@@ -103,12 +102,16 @@ def upload(request):
             )
 
 def review(request):
-    # do someting / get something
-    layers = Layer.objects.all()
-    # define a context for the template
+    # get the organized layer objects
+    author = request.user
+    # temporarily override this
+    author = User.objects.get(username='localcode')
+    layers = DataLayer.objects.filter(author=author).order_by('-date_added')
+
+    formset = ZipFormSet()
+
     context = {
             'layers':layers,
-            'user': request.User,
             }
     # return a rendered template using the context
     return render_to_response(
@@ -117,23 +120,5 @@ def review(request):
             )
 
 
-# AJAX views for processing file data
-
-def fileReceiver(request):
-    """Receives a File object. Returns data about the file."""
-    pass
-
-def layerInfo(request):
-    """Receives a snippet of data about a file, and returns information to the
-     browser via ajax.
-    """
-    pass
-
-def ajaxUpload(request):
-    """A view for ajax uploads of data.
-
-        Should return information to
-    """
-    pass
 
 
