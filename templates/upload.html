@@ -20,12 +20,11 @@
                 <input type="submit" value="Upload Files" />
                   {% for form in formset %}
                   <div class="shp_upload">
-                    {{ form }}
+                    {{ form.as_p }}
                   </div>
                   {% endfor %}
                 </table>
               </form>
-
 {% endblock %}
 
 {% block scripts %}

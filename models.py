@@ -1,6 +1,11 @@
+import os
+
 from django import forms
 from django.db import models
 from django.contrib.auth.models import User
+
+def get_upload_path(instance, filename):
+    return instance.get_upload_path(filename)
 
 class Authored(models.Model):
     """For things made by people """
@@ -31,11 +36,20 @@ class Lookup(Named):
     class Meta:
         abstract=True
 
+class DataFile(Dated):
+    """Data files represent individual file uploads.
+    They are used to construct DataLayers.
+
+    """
+    file = models.FileField(upload_to=get_upload_path)
+    upload = models.ForeignKey('UploadEvent', null=True, blank=True)
+    def get_upload_path(self, filename):
+        return 'uploads/%s/%s' % (self.upload.user.username, filename)
+
 class DataLayer(Named, Authored, Dated, Noted):
-    path = models.FilePathField()
-    geometry_type = models.CharField(max_length=50)
-    srs = models.CharField(max_length=50)
-    upload = models.ForeignKey('UploadEvent')
+    geometry_type = models.CharField(max_length=50, null=True, blank=True)
+    srs = models.CharField(max_length=50, null=True, blank=True)
+    files = models.ManyToManyField('DataFile', null=True, blank=True )
     def __unicode__(self):
         return "DataLayer: %s" % self.name
 
@@ -43,23 +57,10 @@ class UploadEvent(models.Model):
     user = models.ForeignKey(User)
     date = models.DateTimeField(auto_now_add=True)
 
-class LayerBox(models.Model):
-    layer = models.OneToOneField(DataLayer)
-    x_min = models.FloatField()
-    x_max = models.FloatField()
-    y_min = models.FloatField()
-    y_max = models.FloatField()
-
 class Tag(Lookup, Dated, Noted):
     layers = models.ManyToManyField(DataLayer)
     def __unicode__(self):
         return "Tag: %s" % self.slug
-
-class Attribute(Named):
-    layer = models.ForeignKey(DataLayer)
-    data_type = models.CharField(max_length=100)
-    def __unicode__(self):
-        return "Attribute: %s" % self.name
 
 # still need the models for making site collections and site models
 # as well as designating terrain layers.

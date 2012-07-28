@@ -11,10 +11,8 @@ from django.contrib.auth.models import User
 from webfinches.forms import *
 from webfinches.models import *
 
-def send_file_to_db(fobj):
-    pass
 
-def handleShpFiles(username, layername, shp, dbf, prj, shx):
+def handleZipFile(username, layername, shp, dbf, prj, shx):
     path = 'media/uploads/%s' % username
     if not os.path.exists(path):
         os.makedirs(path)
@@ -28,6 +26,7 @@ def handleShpFiles(username, layername, shp, dbf, prj, shx):
             destination.close()
     return os.path.join(path, '%s.shp' % layername)
 
+
 def index(request):
     """A view for browsing the existing webfinches.
     """
@@ -37,58 +36,18 @@ def index(request):
             )
 
 def upload(request):
-    """A view for uploading new data.
+    """This view is for uploading zip files and creating new DataFile objects
+        It could be grown to read the uploaded files intelligently.
     """
-    user=User.objects.get(username='localcode')
-    #print request
+    user = User.objects.get(username='benjamin')
+
     if request.method == 'POST':
+        upload = UploadEvent(user=user)
+        upload.save()
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
-                data = form.cleaned_data
-                if data:
-                    ds_path = handleShpFiles('localcode', data['layer_name'],
-                            data['shp_file'], data['dbf_file'],
-                            data['prj_file'], data['shx_file'])
-                    full_path = os.path.join(os.getcwd(), ds_path)
-                    ds = DataSource(full_path)
-                    layer = ds[0]
-                    datalayer = DataLayer()
-                    datalayer.author = user
-                    datalayer.name = data['layer_name']
-                    datalayer.srs = data['epsg_code']
-                    datalayer.path = ds_path
-                    datalayer.geometry_type = layer.geom_type.name
-                    datalayer.save()
-                    # make the bounding box
-                    xmin, ymin, xmax, ymax = layer.extent.tuple
-                    box = LayerBox()
-                    box.x_min = xmin
-                    box.x_max = xmax
-                    box.y_min = ymin
-                    box.y_max = ymax
-                    box.layer = datalayer
-                    box.save()
-                    for i, field in enumerate(layer.fields):
-                        attribute = Attribute()
-                        attribute.name = field
-                        attribute.data_type = layer.field_types[i].__name__
-                        attribute.layer = datalayer
-                        attribute.save()
-                    tags = data['tags'].split()
-                    for tag in tags:
-
-                        pass
-
-
-
-                #print 'shp_file' in data
-                # perhaps instantiate a fileupload object
-                # use the geos api to read the file from the path you put it
-                # on.
-                # using geos, build the layer object, also building fields for
-                # each layer
-
+                data_file = form.save(upload)
 
     else:
         formset = ZipFormSet()
