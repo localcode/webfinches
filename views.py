@@ -7,12 +7,15 @@ from django.template import RequestContext
 
 from django.contrib.auth.models import User
 
+#from django.contrib.gis.gdal import DataSource
 
-from webfinches.forms import *
+from webfinches.forms import ShpUploadForm, ShpFormSet, ZipFormSet
 from webfinches.models import *
 
+def send_file_to_db(fobj):
+    pass
 
-def handleZipFile(username, layername, shp, dbf, prj, shx):
+def handleShpFiles(username, layername, shp, dbf, prj, shx):
     path = 'media/uploads/%s' % username
     if not os.path.exists(path):
         os.makedirs(path)
@@ -26,7 +29,6 @@ def handleZipFile(username, layername, shp, dbf, prj, shx):
             destination.close()
     return os.path.join(path, '%s.shp' % layername)
 
-
 def index(request):
     """A view for browsing the existing webfinches.
     """
@@ -36,18 +38,58 @@ def index(request):
             )
 
 def upload(request):
-    """This view is for uploading zip files and creating new DataFile objects
-        It could be grown to read the uploaded files intelligently.
+    """A view for uploading new data.
     """
-    user = User.objects.get(username='benjamin')
-
+    user=User.objects.get(username='carlos')
+    #print request
     if request.method == 'POST':
-        upload = UploadEvent(user=user)
-        upload.save()
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
-                data_file = form.save(upload)
+                data = form.cleaned_data
+                if data:
+                    ds_path = handleShpFiles('localcode', data['layer_name'],
+                            data['shp_file'], data['dbf_file'],
+                            data['prj_file'], data['shx_file'])
+                    full_path = os.path.join(os.getcwd(), ds_path)
+                    ds = DataSource(full_path)
+                    layer = ds[0]
+                    datalayer = DataLayer()
+                    datalayer.author = user
+                    datalayer.name = data['layer_name']
+                    datalayer.srs = data['epsg_code']
+                    datalayer.path = ds_path
+                    datalayer.geometry_type = layer.geom_type.name
+                    datalayer.save()
+                    # make the bounding box
+                    xmin, ymin, xmax, ymax = layer.extent.tuple
+                    box = LayerBox()
+                    box.x_min = xmin
+                    box.x_max = xmax
+                    box.y_min = ymin
+                    box.y_max = ymax
+                    box.layer = datalayer
+                    box.save()
+                    for i, field in enumerate(layer.fields):
+                        attribute = Attribute()
+                        attribute.name = field
+                        attribute.data_type = layer.field_types[i].__name__
+                        attribute.layer = datalayer
+                        attribute.save()
+                    tags = data['tags'].split()
+                    for tag in tags:
+
+                        pass
+
+
+
+                #print 'shp_file' in data
+                # perhaps instantiate a fileupload object
+                # use the geos api to read the file from the path you put it
+                # on.
+                # using geos, build the layer object, also building fields for
+                # each layer
+
 
     else:
         formset = ZipFormSet()
@@ -61,16 +103,12 @@ def upload(request):
             )
 
 def review(request):
-    # get the organized layer objects
-    author = request.user
-    # temporarily override this
-    author = User.objects.get(username='localcode')
-    layers = DataLayer.objects.filter(author=author).order_by('-date_added')
-
-    formset = ZipFormSet()
-
+    # do someting / get something
+    layers = Layer.objects.all()
+    # define a context for the template
     context = {
             'layers':layers,
+            'user': request.User,
             }
     # return a rendered template using the context
     return render_to_response(
@@ -78,6 +116,61 @@ def review(request):
             context,
             )
 
+layers = ['site','roads','parcels','selected sites']
+projections = ['wsg93','wsg93','tansverse mercator','']
 
+individual_sites = [ ]
+for i in range(1,10):
+	individual_sites.append(str(i)+'.json') 
+
+zip_file = ['sites.zip']
+
+def configure(request):
+	# configure site layers 
+	#layers = DataLayer.objects.all()
+	#layers = layers
+
+	context = {
+					'layers': layers,
+					'projections': projections,
+						}
+	
+	return render_to_response(
+            'webfinches/configure.html',
+            context,
+            )
+	
+def download(request):
+	# configure site layers 
+	#layers = DataLayer.objects.all()
+	#layers = layers
+
+	context = {
+					'individual_sites': individual_sites,
+					'zip_file': zip_file,
+						}
+	
+	return render_to_response(
+            'webfinches/download.html',
+            context,
+            )
+# AJAX views for processing file data
+
+def fileReceiver(request):
+    """Receives a File object. Returns data about the file."""
+    pass
+
+def layerInfo(request):
+    """Receives a snippet of data about a file, and returns information to the
+     browser via ajax.
+    """
+    pass
+
+def ajaxUpload(request):
+    """A view for ajax uploads of data.
+
+        Should return information to
+    """
+    pass
 
 
