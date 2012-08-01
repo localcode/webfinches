@@ -36,30 +36,6 @@ class Lookup(Named):
     class Meta:
         abstract=True
 
-class TextItem(models.Model):
-    """A very basic model for storing bits of text-based content"""
-    name = models.CharField(max_length=200)
-    content = models.TextField()
-    def __unicode__(self):
-        return "TextItem: %s" % self.name
-
-def textspace(namespace):
-    '''Uses the beginning of name strings retrieve all the
-    TextItem objects that share the same root in their name. Returns a dictionary
-    with the form:
-        {
-        'text_item_name':'text_item_content',
-        }
-    Can be used to quickly add text items to a context and then use them
-    directly in templates.
-    '''
-    objs = TextItem.objects.filter(name__startswith=namespace)
-    d = {}
-    for t in objs:
-            d[t.name] = t.content
-    return d
-
-
 class DataFile(Dated):
     """Data files represent individual file uploads.
     They are used to construct DataLayers.
