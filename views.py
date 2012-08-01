@@ -14,82 +14,6 @@ from webfinches.models import *
 
 from django.core.mail import send_mail
 
-'''
-#Another login def
-def login_user(request):
-    state = "Please log in below..."
-    username = ''
-    password = ''
-    if request.POST:
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            if user.is_active:
-                login(request, user)
-                state = "You're successfully logged in!"
-            else:
-                state = "Your account is not active, please contact the site admin."
-        else:
-            state = "Your username and/or password were incorrect."
-
-    return render_to_response('webfinches/logged.html',{'state':state, 'username': username}
-'''
-
-#Register def
-
-def register(request):
-	local_code_email = 'localcode@localco.de'
-	message = open('\templates\registration\send_mail.txt','r').read()
-	name = forms.CharField(max_length=100)
-	user_email = forms.EmailField()
-	username = forms.CharField()
-	password1 = forms.CharField(max_length=30,is_required=True)
-	password2 = forms.CharField(max_length=30,is_required=True, validator_list=[validators.AlwaysMatchesOtherField('password1','Passwords must match.')])
-	
-	send_mail(user_email, message, local_code_email, user_email)
-	return HttpResponseRedirect('/webfinches/register/complete/') # Redirect after POST
- 
-#testing login def 
-'''
-def login(request):
-	def errorHandle(error):
-		form = LoginForm()
-		return render_to_response('login.html', {
-				'error' : error,
-				'form' : form,
-		})
-	if request.method == 'POST': # If the form has been submitted...
-		form = LoginForm(request.POST) # A form bound to the POST data
-		if form.is_valid(): # All validation rules pass
-			username = request.POST['username']
-			password = request.POST['password']
-			user = authenticate(username=username, password=password)
-			if user is not None:
-				if user.is_active:
-					# Redirect to a success page.
-					login(request, user)
-					return render_to_response('webfinches/logged_in.html', {
-						'username': username,
-					})
-				else:
-					# Return a 'disabled account' error message
-					error = u'account disabled'
-					return errorHandle(error)
-			else:
-				 # Return an 'invalid login' error message.
-				error = u'invalid login'
-				return errorHandle(error)
-		else:
-			error = u'form is invalid'
-			return errorHandle(error)
-	else:
-		form = LoginForm() # An unbound form
-		return render_to_response('login.html', {
-			'form': form,
-		})
-		'''
 		
 def send_file_to_db(fobj):
     pass
@@ -115,29 +39,6 @@ def index(request):
             'webfinches/index.html',
             {'webfinches':DataLayer.objects.all()},
             )
-# still need to work on these ones
-def login(request):
-	# login to site 
-	user=User.objects.get(username='carlos')
-	context = {
-					'user': user,
-					#'password': password,
-						}
-	
-	return render_to_response(
-            'webfinches/login.html',
-            context,
-            )
-# still need to work on this ones
-def create_account(request):
-	# login to site 
-	user=User.objects.get(username='carlos')
-	context = {
-					#'user': user,
-					#'password': password,
-						}
-	
-	return render_to_response( 'webfinches/create_account.html', context, ) 
 
 def upload(request):
     """A view for uploading new data.
@@ -222,6 +123,7 @@ def review(request):
 layers = ['site','roads','parcels','selected sites']
 projections = ['wsg93','wsg93','tansverse mercator','']
 
+
 individual_sites = [ ]
 for i in range(1,10):
 	individual_sites.append(str(i)+'.json') 
@@ -252,57 +154,6 @@ def download(request):
 	#layers = layers
 	
 
-	'''user=User.objects.get(username='carlos')
-    #print request
-    if request.method == 'GET':
-        formset = ZipFormSet(request.GET, request.FILES)
-        for form in formset:
-            if form.is_valid():
-                data = form.cleaned_data
-                if data:
-                    ds_path = handleShpFiles('localcode', data['layer_name'],
-                            data['shp_file'], data['dbf_file'],
-                            data['prj_file'], data['shx_file'])
-                    full_path = os.path.join(os.getcwd(), ds_path)
-                    ds = DataSource(full_path)
-                    layer = ds[0]
-                    datalayer = DataLayer()
-                    datalayer.author = user
-                    datalayer.name = data['layer_name']
-                    datalayer.srs = data['epsg_code']
-                    datalayer.path = ds_path
-                    datalayer.geometry_type = layer.geom_type.name
-                    datalayer.save()
-                    # make the bounding box
-                    xmin, ymin, xmax, ymax = layer.extent.tuple
-                    box = LayerBox()
-                    box.x_min = xmin
-                    box.x_max = xmax
-                    box.y_min = ymin
-                    box.y_max = ymax
-                    box.layer = datalayer
-                    box.save()
-                    for i, field in enumerate(layer.fields):
-                        attribute = Attribute()
-                        attribute.name = field
-                        attribute.data_type = layer.field_types[i].__name__
-                        attribute.layer = datalayer
-                        attribute.save()
-                    tags = data['tags'].split()
-                    for tag in tags:
-
-                        pass
-
-                #print 'shp_file' in data
-                # perhaps instantiate a fileupload object
-                # use the geos api to read the file from the path you put it
-                # on.
-                # using geos, build the layer object, also building fields for
-                # each layer
-
-    else:
-        formset = ZipFormSet()'''
-
 	context = {
 					'individual_sites': individual_sites,
 					'zip_file': zip_file,
@@ -310,6 +161,39 @@ def download(request):
 					#'user': request.User,
 						}
 
+
+
+individual_sites = [ ]
+for i in range(1,10):
+	individual_sites.append(str(i)+'.json') 
+
+zip_file = ['sites.zip']
+
+def configure(request):
+	# configure site layers 
+	#layers = DataLayer.objects.all()
+	#layers = layers
+
+	context = {
+					'layers': layers,
+					'projections': projections,
+						}
+	
+	return render_to_response(
+            'webfinches/configure.html',
+            context,
+            )
+	
+def download(request):
+	# configure site layers 
+	#layers = DataLayer.objects.all()
+	#layers = layers
+
+	context = {
+					'individual_sites': individual_sites,
+					'zip_file': zip_file,
+						}
+	
 	return render_to_response(
             'webfinches/download.html',
             context,
