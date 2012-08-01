@@ -9,6 +9,10 @@
     Download Sites
 {% endblock %}
 
+{% block layernavs %}
+            <li><a href="/webfinches"><div class="sitenav">Browse Data</div></a></li>
+{% endblock %}
+
 {% block content %}
 		
 		<form>
@@ -48,12 +52,7 @@
 					{{item}}: <input type="submit" value="Download"/></div>
 					{% endfor %}
 				
-				<div> <h1>API Download:</h1></div>
-				<div> 
-					{% for item in api_download %}
-					{{item}}:
-					{% endfor %}
-				</div>
+				<p><h1>API Download:</h1></p>	
 
 			
 		</form>
