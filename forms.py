@@ -30,37 +30,21 @@ class ZipUploadForm(forms.ModelForm):
 
     def save(self, upload, commit=True):
         """Data Files need a UploadEvent in order to be saved"""
-        zip_file = self.cleaned_data['file']
         # create a DataFile object
         data_file = super(ZipUploadForm, self).save(commit=False)
         # attache the UploadEvent
         data_file.upload = upload
-        print data_file.upload
         data_file.save(commit)
         return data_file
 
-class LayerReviewForm(forms.Form):
+class LayerReviewForm(forms.ModelForm):
     """For editing and configuring the layer information for each layer."""
-    layer_name = forms.CharField(max_length=200,
-            widget=forms.TextInput(attrs={
-                'class':'name_field',
-                })
-            )
-    epsg_code = forms.CharField(max_length=20,
-            widget=forms.TextInput(attrs={
-                'class':'epsg_field',
-                }), required=False,
-            )
-    tags = forms.CharField(max_length=200,
-            widget=forms.TextInput(attrs={
-                'class':'tag_field',
-                }), required=False,
-            )
-    z_field = forms.CharField(max_length=200,
-            widget=forms.TextInput(attrs={
-                'class':'z_field',
-                }), required=False,
-            )
+
+    class Meta:
+        model = DataLayer
+
+    def populate_fields_from_file(self, data_file):
+        pass
 
 
 ZipFormSet = formset_factory(ZipUploadForm, extra=1)
