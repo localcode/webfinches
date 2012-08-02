@@ -1,4 +1,5 @@
 import os
+import zipfile
 
 from django import forms
 from django.db import models
@@ -47,7 +48,26 @@ class DataFile(Dated):
     def get_upload_path(self, filename):
         return 'uploads/%s/%s' % (self.upload.user.username, filename)
     def __unicode__(self):
-        return "DataFile: %s" % self.name
+        return "DataFile: %s" % self.file.url
+    def get_layer_data(self):
+        data = {}
+        f = self.file
+        zip_file = zipfile.ZipFile(f)
+        contents = zip_file.namelist()
+        proj = [n for n in contents if '.prj' in n]
+        if proj:
+            # guess the srs
+            proj_text = zip_file.open( proj[0] ).read()
+            data['notes'] = proj_text
+            data['srs'] = ''
+        else:
+            data['srs'] = ''
+        # give a default name
+        basename = os.path.splitext(contents[0])[0]
+        data['name'] = basename
+        f.close()
+        return data
+
 
 class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
