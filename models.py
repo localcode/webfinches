@@ -3,6 +3,7 @@ import os
 from django import forms
 from django.db import models
 from django.contrib.auth.models import User
+from django.core import validators
 
 def get_upload_path(instance, filename):
     return instance.get_upload_path(filename)
@@ -65,6 +66,12 @@ class Tag(Lookup, Dated, Noted):
     layers = models.ManyToManyField(DataLayer)
     def __unicode__(self):
         return "Tag: %s" % self.slug
+
+class Attribute(Named):
+    layer = models.ForeignKey(DataLayer)
+    data_type = models.CharField(max_length=100)
+    def __unicode__(self):
+        return "Attribute: %s" % self.name
 
 # still need the models for making site collections and site models
 # as well as designating terrain layers.
