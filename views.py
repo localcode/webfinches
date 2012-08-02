@@ -14,7 +14,7 @@ from webfinches.models import *
 
 from django.core.mail import send_mail
 
-		
+
 def send_file_to_db(fobj):
     pass
 
@@ -49,51 +49,7 @@ def upload(request):
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
-                data = form.cleaned_data
-                if data:
-                    ds_path = handleShpFiles('localcode', data['layer_name'],
-                            data['shp_file'], data['dbf_file'],
-                            data['prj_file'], data['shx_file'])
-                    full_path = os.path.join(os.getcwd(), ds_path)
-                    ds = DataSource(full_path)
-                    layer = ds[0]
-                    datalayer = DataLayer()
-                    datalayer.author = user
-                    datalayer.name = data['layer_name']
-                    datalayer.srs = data['epsg_code']
-                    datalayer.path = ds_path
-                    datalayer.geometry_type = layer.geom_type.name
-                    datalayer.save()
-                    # make the bounding box
-                    xmin, ymin, xmax, ymax = layer.extent.tuple
-                    box = LayerBox()
-                    box.x_min = xmin
-                    box.x_max = xmax
-                    box.y_min = ymin
-                    box.y_max = ymax
-                    box.layer = datalayer
-                    box.save()
-                    for i, field in enumerate(layer.fields):
-                        attribute = Attribute()
-                        attribute.name = field
-                        attribute.data_type = layer.field_types[i].__name__
-                        attribute.layer = datalayer
-                        attribute.save()
-                    tags = data['tags'].split()
-                    for tag in tags:
-
-                        pass
-
-
-
-                #print 'shp_file' in data
-                # perhaps instantiate a fileupload object
-                # use the geos api to read the file from the path you put it
-                # on.
-                # using geos, build the layer object, also building fields for
-                # each layer
-
-
+                data_file = form.save(upload)
     else:
         formset = ZipFormSet()
 
@@ -126,13 +82,13 @@ projections = ['wsg93','wsg93','tansverse mercator','']
 
 individual_sites = [ ]
 for i in range(1,10):
-	individual_sites.append(str(i)+'.json') 
+	individual_sites.append(str(i)+'.json')
 
 zip_file = ['sites.zip']
 api_download = ['https://github.com/localcode']
 
 def configure(request):
-	# configure site layers 
+	# configure site layers
 	#layers = DataLayer.objects.all()
 	#layers = layers
 
@@ -140,19 +96,19 @@ def configure(request):
 					'layers': layers,
 					'projections': projections,
 						}
-	
+
 	return render_to_response(
             'webfinches/browse/configure.html',
             context,
             )
-	
+
 def download(request):
 	#A view for downloading data.
 
-	# configure site layers 
+	# configure site layers
 	#layers = DataLayer.objects.all()
 	#layers = layers
-	
+
 
 	context = {
 					'individual_sites': individual_sites,
@@ -165,12 +121,12 @@ def download(request):
 
 individual_sites = [ ]
 for i in range(1,10):
-	individual_sites.append(str(i)+'.json') 
+	individual_sites.append(str(i)+'.json')
 
 zip_file = ['sites.zip']
 
 def configure(request):
-	# configure site layers 
+	# configure site layers
 	#layers = DataLayer.objects.all()
 	#layers = layers
 
@@ -178,14 +134,14 @@ def configure(request):
 					'layers': layers,
 					'projections': projections,
 						}
-	
+
 	return render_to_response(
             'webfinches/configure.html',
             context,
             )
-	
+
 def download(request):
-	# configure site layers 
+	# configure site layers
 	#layers = DataLayer.objects.all()
 	#layers = layers
 
@@ -193,7 +149,7 @@ def download(request):
 					'individual_sites': individual_sites,
 					'zip_file': zip_file,
 						}
-	
+
 	return render_to_response(
             'webfinches/download.html',
             context,
