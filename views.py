@@ -48,7 +48,7 @@ def upload(request):
     user=User.objects.get(username='carlos')
     #print request
     if request.method == 'POST':
-    	upload = UploadEvent(user=user)
+        upload = UploadEvent(user=user)
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
@@ -66,18 +66,29 @@ def upload(request):
 
 @login_required
 def review(request):
-    # do someting / get something
-    layers = Layer.objects.all()
-    # define a context for the template
-    context = {
-            'layers':layers,
-            'user': request.User,
+    """A view for uploading new data.
+    """
+    user=User.objects.get(username='benjamin')
+    if request.method == 'POST': # someone is giving us data
+        formset = LayerReviewFormSet(request.POST, request.FILES)
+        for form in formset:
+            print 'reviewing form'
+    else: # we are asking them to review data
+        # get the last upload of this user
+        upload = UploadEvent.objects.filter(user=user).order_by('-date')[0]
+        data_files = DataFile.objects.filter(upload=upload)
+        layer_data = [ f.get_layer_data() for f in data_files ]
+        print layer_data
+        formset = LayerReviewFormSet( initial=layer_data )
+    c = {
+            'formset':formset,
             }
-    # return a rendered template using the context
     return render_to_response(
             'webfinches/review.html',
-            context,
+            RequestContext(request, c),
             )
+
+
 
 layers = ['site','roads','parcels','selected sites']
 projections = ['wsg93','wsg93','tansverse mercator','']

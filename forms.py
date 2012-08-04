@@ -39,14 +39,12 @@ class ZipUploadForm(forms.ModelForm):
 
 class LayerReviewForm(forms.ModelForm):
     """For editing and configuring the layer information for each layer."""
-
     class Meta:
         model = DataLayer
+        fields = ['name', 'notes', 'srs']
 
-    def populate_fields_from_file(self, data_file):
-        pass
 
 
 ZipFormSet = formset_factory(ZipUploadForm, extra=1)
-LayerReviewFormSet = formset_factory(LayerReviewForm, extra=0)
+LayerReviewFormSet = formset_factory(LayerReviewForm, extra=5)
 
