@@ -9,10 +9,11 @@ from django.contrib.auth.models import User
 
 #from django.contrib.gis.gdal import DataSource
 
-from webfinches.forms import ShpUploadForm, ShpFormSet, ZipFormSet
+from webfinches.forms import *
 from webfinches.models import *
-
+from django.contrib.auth.views import login
 from django.core.mail import send_mail
+from django.contrib.auth.decorators import login_required
 
 
 def send_file_to_db(fobj):
@@ -40,12 +41,14 @@ def index(request):
             {'webfinches':DataLayer.objects.all()},
             )
 
+@login_required
 def upload(request):
     """A view for uploading new data.
     """
     user=User.objects.get(username='carlos')
     #print request
     if request.method == 'POST':
+    	upload = UploadEvent(user=user)
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
@@ -61,7 +64,7 @@ def upload(request):
             RequestContext(request, c),
             )
 
-
+@login_required
 def review(request):
     # do someting / get something
     layers = Layer.objects.all()
@@ -87,6 +90,7 @@ for i in range(1,10):
 zip_file = ['sites.zip']
 api_download = ['https://github.com/localcode']
 
+@login_required
 def configure(request):
 	# configure site layers
 	#layers = DataLayer.objects.all()
@@ -102,6 +106,7 @@ def configure(request):
             context,
             )
 
+@login_required
 def download(request):
 	#A view for downloading data.
 
@@ -117,45 +122,14 @@ def download(request):
 					#'user': request.User,
 						}
 
-
-
-individual_sites = [ ]
-for i in range(1,10):
-	individual_sites.append(str(i)+'.json')
-
-zip_file = ['sites.zip']
-
-def configure(request):
-	# configure site layers
-	#layers = DataLayer.objects.all()
-	#layers = layers
-
-	context = {
-					'layers': layers,
-					'projections': projections,
-						}
-
-	return render_to_response(
-            'webfinches/configure.html',
-            context,
-            )
-
-def download(request):
-	# configure site layers
-	#layers = DataLayer.objects.all()
-	#layers = layers
-
-	context = {
-					'individual_sites': individual_sites,
-					'zip_file': zip_file,
-						}
-
-	return render_to_response(
-            'webfinches/download.html',
-            context,
-            )
 # AJAX views for processing file data
-
+def logged(request):
+    """Receives a File object. Returns data about the file."""
+    return render_to_response(
+            'registration/logged.html',
+           
+            )
+    
 def fileReceiver(request):
     """Receives a File object. Returns data about the file."""
     pass
@@ -173,4 +147,44 @@ def ajaxUpload(request):
     """
     pass
 
+def create_account(request):
+	user=User.objects.get(username='carlos')
+	context = {
+					#'user': user,
+					#'password': password,
+						}
+	return render_to_response(
+            'webfinches/create_account.html',
+            context,
+            )
+          	
+#views.login(POST)
+'''creating users?
+def create_account(username, email, password):
+	user = User.objects.create_user(username, email, password)
+	user.is_staff = False
+	user.save()
+	
+		return render_to_response(
+            'webfinches/login/create_account.html',
+            context,
+            )
 
+def login(username, password):
+    username = request.POST['username']
+    password = request.POST['password']
+    user = authenticate(username=username, password=password)
+		if user is not None:
+  	  if user.is_active:
+  	    print "You provided a correct username and password!"
+    	else:
+        print "Your account has been disabled!"
+		else:
+    	print "Your username and password were incorrect."
+
+	return render_to_response(
+            'webfinches/login.html',
+            context,
+            )
+  '''
+	

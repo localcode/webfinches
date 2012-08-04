@@ -73,6 +73,16 @@ class Attribute(Named):
     def __unicode__(self):
         return "Attribute: %s" % self.name
 
+'''
+class UserName(models.Model):
+    # This is the only required field
+    user = models.ForeignKey(User, unique=True)
+
+    # The rest is completely up to you...
+    favorite_band = models.CharField(maxlength=100, blank=True)
+    favorite_cheese = models.CharField(maxlength=100, blank=True)
+    lucky_number = models.IntegerField()
+'''
 # still need the models for making site collections and site models
 # as well as designating terrain layers.
 
