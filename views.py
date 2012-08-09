@@ -16,23 +16,6 @@ from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required
 
 
-def send_file_to_db(fobj):
-    pass
-
-def handleShpFiles(username, layername, shp, dbf, prj, shx):
-    path = 'media/uploads/%s' % username
-    if not os.path.exists(path):
-        os.makedirs(path)
-    for f in (shp, prj, dbf, shx):
-        ext = os.path.splitext(f.name)[1]
-        filename = '%s%s' % (layername, ext)
-        with open(os.path.join(path, filename), 'wb+') as destination:
-            for chunk in f.chunks():
-                print type(chunk)
-                destination.write(chunk)
-            destination.close()
-    return os.path.join(path, '%s.shp' % layername)
-
 def index(request):
     """A view for browsing the existing webfinches.
     """

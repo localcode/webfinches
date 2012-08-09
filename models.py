@@ -79,6 +79,7 @@ class DataFile(Dated):
         data = {}
         data['data_file_id'] = self.id
 
+        abs_path = self.abs_path()
         # see if we need to extract it
         extract_dir = self.extract_path()
         basename = os.path.split( extract_dir )[1]

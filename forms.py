@@ -46,6 +46,6 @@ class LayerReviewForm(forms.ModelForm):
        	fields = ['name', 'notes', 'geometry_type', 'srs']
 
 
-ZipFormSet = formset_factory(ZipUploadForm, extra=1)
+ZipFormSet = formset_factory(ZipUploadForm, extra=3)
 LayerReviewFormSet = formset_factory(LayerReviewForm, extra=0)
 
