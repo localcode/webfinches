@@ -95,6 +95,7 @@ def review(request):
         data_files = DataFile.objects.filter(upload=upload)   
         layer_data = [ f.get_layer_data() for f in data_files ]
         formset = LayerReviewFormSet( initial=layer_data )
+        #print formset.as_p()
         
     c = {
             'formset':formset,

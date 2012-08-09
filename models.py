@@ -94,7 +94,7 @@ class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
-    layer_id = models.AutoField(primary_key=True)
+    #layer_id = models.AutoField(primary_key=True)
     def __unicode__(self):
         return "DataLayer: %s" % self.name
 
