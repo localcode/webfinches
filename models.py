@@ -6,6 +6,12 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core import validators
 
+# requires GeoDjango Libraries
+from django.contrib.gis.gdal import DataSource
+
+# the basepath for file uploads (needed to read shapefiles)
+from settings import MEDIA_ROOT
+
 def get_upload_path(instance, filename):
     return instance.get_upload_path(filename)
 
@@ -41,38 +47,78 @@ class Lookup(Named):
 class DataFile(Dated):
     """Data files represent individual file uploads.
     They are used to construct DataLayers.
-
     """
     file = models.FileField(upload_to=get_upload_path)
     upload = models.ForeignKey('UploadEvent', null=True, blank=True)
     def get_upload_path(self, filename):
         return 'uploads/%s/%s' % (self.upload.user.username, filename)
+    def abs_path(self):
+        """returns the full path of the zip file"""
+        return os.path.join( MEDIA_ROOT, self.file.__unicode__())
+    def extract_path(self):
+        """returns a directory path for extracting zip files to"""
+        return os.path.splitext( self.abs_path() )[0]
+    def path_of_part(self, ext):
+        """give an file extension of a specific file within the zip file, and
+        get an absolute path to the extracted file with that extension.
+            Assumes that the contents have been extracted.
+            Returns `None` if the file can't be found
+        """
+        pieces = os.listdir( self.extract_path() )
+        piece = [p for p in pieces if ext in p]
+        if not piece:
+            return None
+        else:
+            return os.path.join( self.extract_path(), piece[0] )
     def __unicode__(self):
         return "DataFile: %s" % self.file.url
     def get_layer_data(self):
+        """extracts relevant data for building LayerData objects
+            meant to be used as initial data for LayerReview Forms
+        """
         data = {}
-        f = self.file
-        zip_file = zipfile.ZipFile(f)
-        contents = zip_file.namelist()
-        proj = [n for n in contents if '.prj' in n]
-        if proj:
-            # guess the srs
-            proj_text = zip_file.open( proj[0] ).read()
-            data['notes'] = proj_text
-            data['srs'] = ''
-        else:
-            data['srs'] = ''
-        # give a default name
-        basename = os.path.splitext(contents[0])[0]
-        data['name'] = basename
-        f.close()
-        return data
+        data['data_file_id'] = self.id
 
+        # see if we need to extract it
+        extract_dir = self.extract_path()
+        basename = os.path.split( extract_dir )[1]
+        if not os.path.isdir( extract_dir ):
+            # extract it to a directory with that name
+            os.mkdir( extract_dir )
+            zip_file = zipfile.ZipFile( self.file )
+            zip_file.extractall( extract_dir )
+
+        # get shape type
+        shape_path = self.path_of_part('.shp')
+        ds = DataSource( shape_path )
+        layer = ds[0]
+
+        data['geometry_type'] = layer.geom_type.name
+        data['name'] = layer.name
+        data['fields'] = layer.fields
+        data['bbox'] = layer.extent.tuple
+        if layer.srs:
+            srs = layer.srs
+            try:
+                srs.identify_epsg()
+                data['srs'] = srs['AUTHORITY'] +':'+srs['AUTHORITY', 1]
+            except:
+                data['srs'] = None
+        if not data['srs']:
+            # get .prj text
+            prj_path = self.path_of_part('.prj')
+            if prj_path:
+                prj_text = open(prj_path, 'r').read()
+                data['notes'] = prj_text
+            data['srs'] = 'No known Spatial Reference System'
+
+        return data
 
 class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
+    layer_id = models.AutoField(primary_key=True)
     def __unicode__(self):
         return "DataLayer: %s" % self.name
 
@@ -92,23 +138,6 @@ class Attribute(Named):
     data_type = models.CharField(max_length=100)
     def __unicode__(self):
         return "Attribute: %s" % self.name
-
-'''
-class UserName(models.Model):
-    # This is the only required field
-    user = models.ForeignKey(User, unique=True)
-
-    # The rest is completely up to you...
-    favorite_band = models.CharField(maxlength=100, blank=True)
-    favorite_cheese = models.CharField(maxlength=100, blank=True)
-    lucky_number = models.IntegerField()
-'''
-# still need the models for making site collections and site models
-# as well as designating terrain layers.
-
-
-
-
 
 
 
