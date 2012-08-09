@@ -49,10 +49,12 @@ def upload(request):
     #print request
     if request.method == 'POST':
         upload = UploadEvent(user=user)
+        upload.save()
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
                 data_file = form.save(upload)
+
     else:
         formset = ZipFormSet()
 
@@ -68,18 +70,32 @@ def upload(request):
 def review(request):
     """A view for uploading new data.
     """
-    user=User.objects.get(username='benjamin')
+					
+    user=User.objects.get(username='carlos')
     if request.method == 'POST': # someone is giving us data
-        formset = LayerReviewFormSet(request.POST, request.FILES)
-        for form in formset:
-            print 'reviewing form'
+        formset = LayerReviewFormSet(request.POST)
+        if formset.is_valid():
+        		for form in formset:
+        				# get the DataFile id from the form data
+        				data_file_id = form.cleaned_data['data_file_id']
+        				# now get the actual object associated with that id
+        				data_file = DataFile.objects.get(id=data_file_id)
+        				srs = form.cleaned_data['srs']
+        				layer = DataLayer(srs = srs)
+        				layer = form.save(commit=False)
+        				layer.author = user
+        				# the DataLayer must exist before we can add relations to it
+        				layer.save()
+        				layer.files.add(data_file) # add the relation
+        				layer.save() # resave the layer
+        				
     else: # we are asking them to review data
         # get the last upload of this user
         upload = UploadEvent.objects.filter(user=user).order_by('-date')[0]
-        data_files = DataFile.objects.filter(upload=upload)
+        data_files = DataFile.objects.filter(upload=upload)   
         layer_data = [ f.get_layer_data() for f in data_files ]
-        print layer_data
         formset = LayerReviewFormSet( initial=layer_data )
+        
     c = {
             'formset':formset,
             }
@@ -88,7 +104,41 @@ def review(request):
             RequestContext(request, c),
             )
 
+# AJAX views for processing file data
+def logged(request):
+    """Receives a File object. Returns data about the file."""
+    return render_to_response(
+            'registration/logged.html',
+           
+            )
+    
+def fileReceiver(request):
+    """Receives a File object. Returns data about the file."""
+    pass
 
+def layerInfo(request):
+    """Receives a snippet of data about a file, and returns information to the
+     browser via ajax.
+    """
+    pass
+
+def ajaxUpload(request):
+    """A view for ajax uploads of data.
+
+        Should return information to
+    """
+    pass
+
+def create_account(request):
+	user=User.objects.get(username='carlos')
+	context = {
+					#'user': user,
+					#'password': password,
+						}
+	return render_to_response(
+            'webfinches/create_account.html',
+            context,
+            )
 
 layers = ['site','roads','parcels','selected sites']
 projections = ['wsg93','wsg93','tansverse mercator','']
@@ -132,42 +182,6 @@ def download(request):
 					'api_download': api_download,
 					#'user': request.User,
 						}
-
-# AJAX views for processing file data
-def logged(request):
-    """Receives a File object. Returns data about the file."""
-    return render_to_response(
-            'registration/logged.html',
-           
-            )
-    
-def fileReceiver(request):
-    """Receives a File object. Returns data about the file."""
-    pass
-
-def layerInfo(request):
-    """Receives a snippet of data about a file, and returns information to the
-     browser via ajax.
-    """
-    pass
-
-def ajaxUpload(request):
-    """A view for ajax uploads of data.
-
-        Should return information to
-    """
-    pass
-
-def create_account(request):
-	user=User.objects.get(username='carlos')
-	context = {
-					#'user': user,
-					#'password': password,
-						}
-	return render_to_response(
-            'webfinches/create_account.html',
-            context,
-            )
           	
 #views.login(POST)
 '''creating users?

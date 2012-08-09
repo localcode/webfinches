@@ -39,12 +39,13 @@ class ZipUploadForm(forms.ModelForm):
 
 class LayerReviewForm(forms.ModelForm):
     """For editing and configuring the layer information for each layer."""
+    data_file_id = forms.IntegerField(widget=forms.HiddenInput())
+    
     class Meta:
-        model = DataLayer
-        fields = ['name', 'notes', 'srs']
-
-
+        model = DataLayer  
+       	fields = ['name', 'notes', 'geometry_type', 'srs']
+        
 
 ZipFormSet = formset_factory(ZipUploadForm, extra=1)
-LayerReviewFormSet = formset_factory(LayerReviewForm, extra=5)
+LayerReviewFormSet = formset_factory(LayerReviewForm, extra=0)
 

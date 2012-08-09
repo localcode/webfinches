@@ -1,10 +1,28 @@
 import os
 import zipfile
+import shapefile
 
 from django import forms
 from django.db import models
 from django.contrib.auth.models import User
 from django.core import validators
+
+shpTypeDict = {
+			"0":"Null Shape", 	
+			"1":"Point", 	
+			"3":"Polyline", 	
+			"5":"Polygon", 	
+			"8":"MultiPoint", 	
+			"11":"PointZ", 	
+			"13":"PolylineZ", 	
+			"15":"PolygonZ", 	
+			"18":"MultiPointZ", 	
+			"21":"PointM", 	
+			"23":"PolylineM", 	
+			"25":"PolygonM", 	
+			"28":"MultiPointM", 	
+			"31":"MultiPatch"
+					} 	
 
 def get_upload_path(instance, filename):
     return instance.get_upload_path(filename)
@@ -41,7 +59,6 @@ class Lookup(Named):
 class DataFile(Dated):
     """Data files represent individual file uploads.
     They are used to construct DataLayers.
-
     """
     file = models.FileField(upload_to=get_upload_path)
     upload = models.ForeignKey('UploadEvent', null=True, blank=True)
@@ -59,15 +76,19 @@ class DataFile(Dated):
             # guess the srs
             proj_text = zip_file.open( proj[0] ).read()
             data['notes'] = proj_text
+            data['srs'] = '' 
+        else:  
             data['srs'] = ''
-        else:
-            data['srs'] = ''
-        # give a default name
+        # give a default name and geometry type
         basename = os.path.splitext(contents[0])[0]
+        extract = zip_file.extractall()
+        shp = shapefile.Reader(basename).shapes() #get shape type value from shp file
+        geometry_type = shpTypeDict[str(shp[3].shapeType)] #get geom_type from shape type value
         data['name'] = basename
+        data['geometry_type'] = geometry_type
         f.close()
+        data['data_file_id'] = self.id
         return data
-
 
 class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
