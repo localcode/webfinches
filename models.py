@@ -62,11 +62,12 @@ class DataFile(Dated):
         """give an file extension of a specific file within the zip file, and
         get an absolute path to the extracted file with that extension.
             Assumes that the contents have been extracted.
+            Returns `None` if the file can't be found
         """
         pieces = os.listdir( self.extract_path() )
         piece = [p for p in pieces if ext in p]
         if not piece:
-            return
+            return None
         else:
             return os.path.join( self.extract_path(), piece[0] )
     def __unicode__(self):
@@ -78,23 +79,13 @@ class DataFile(Dated):
         data = {}
         data['data_file_id'] = self.id
 
-        zip_file = zipfile.ZipFile( self.file )
-        contents = zip_file.namelist()
-        proj = [n for n in contents if '.prj' in n]
-        if proj:
-            # guess the srs
-            proj_text = zip_file.open( proj[0] ).read()
-            data['notes'] = proj_text
-            data['srs'] = ''
-        else:
-            data['srs'] = ''
-
         # see if we need to extract it
         extract_dir = self.extract_path()
         basename = os.path.split( extract_dir )[1]
         if not os.path.isdir( extract_dir ):
             # extract it to a directory with that name
             os.mkdir( extract_dir )
+            zip_file = zipfile.ZipFile( self.file )
             zip_file.extractall( extract_dir )
 
         # get shape type
@@ -107,7 +98,20 @@ class DataFile(Dated):
         data['fields'] = layer.fields
         data['bbox'] = layer.extent.tuple
         if layer.srs:
-            data['srs'] = layer.srs
+            srs = layer.srs
+            try:
+                srs.identify_epsg()
+                data['srs'] = srs['AUTHORITY'] +':'+srs['AUTHORITY', 1]
+            except:
+                data['srs'] = None
+        if not data['srs']:
+            # get .prj text
+            prj_path = self.path_of_part('.prj')
+            if prj_path:
+                prj_text = open(prj_path, 'r').read()
+                data['notes'] = prj_text
+            data['srs'] = 'No known Spatial Reference System'
+
         return data
 
 class DataLayer(Named, Authored, Dated, Noted):

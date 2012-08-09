@@ -1,6 +1,6 @@
-from django.http import HttpResponse
 import os
 
+from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 from django.contrib.auth import authenticate, login
@@ -45,7 +45,7 @@ def index(request):
 def upload(request):
     """A view for uploading new data.
     """
-    user=User.objects.get(username='carlos')
+    user = request.user
     #print request
     if request.method == 'POST':
         upload = UploadEvent(user=user)
@@ -55,6 +55,7 @@ def upload(request):
             if form.is_valid():
                 data_file = form.save(upload)
 
+        return HttpResponseRedirect('/webfinches/review/')
     else:
         formset = ZipFormSet()
 
@@ -70,8 +71,7 @@ def upload(request):
 def review(request):
     """A view for uploading new data.
     """
-					
-    user=User.objects.get(username='carlos')
+    user = request.user
     if request.method == 'POST': # someone is giving us data
         formset = LayerReviewFormSet(request.POST)
         if formset.is_valid():
@@ -88,14 +88,14 @@ def review(request):
         				layer.save()
         				layer.files.add(data_file) # add the relation
         				layer.save() # resave the layer
-        				
+
     else: # we are asking them to review data
         # get the last upload of this user
         upload = UploadEvent.objects.filter(user=user).order_by('-date')[0]
-        data_files = DataFile.objects.filter(upload=upload)   
+        data_files = DataFile.objects.filter(upload=upload)
         layer_data = [ f.get_layer_data() for f in data_files ]
         formset = LayerReviewFormSet( initial=layer_data )
-        
+
     c = {
             'formset':formset,
             }
@@ -109,9 +109,9 @@ def logged(request):
     """Receives a File object. Returns data about the file."""
     return render_to_response(
             'registration/logged.html',
-           
+
             )
-    
+
 def fileReceiver(request):
     """Receives a File object. Returns data about the file."""
     pass
@@ -182,14 +182,14 @@ def download(request):
 					'api_download': api_download,
 					#'user': request.User,
 						}
-          	
+
 #views.login(POST)
 '''creating users?
 def create_account(username, email, password):
 	user = User.objects.create_user(username, email, password)
 	user.is_staff = False
 	user.save()
-	
+
 		return render_to_response(
             'webfinches/login/create_account.html',
             context,
@@ -212,4 +212,4 @@ def login(username, password):
             context,
             )
   '''
-	
+
