@@ -49,6 +49,7 @@ def upload(request):
     #print request
     if request.method == 'POST':
         upload = UploadEvent(user=user)
+	upload.save()
         formset = ZipFormSet(request.POST, request.FILES)
         for form in formset:
             if form.is_valid():
