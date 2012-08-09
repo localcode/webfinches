@@ -8,21 +8,21 @@ from django.contrib.auth.models import User
 from django.core import validators
 
 shpTypeDict = {
-			"0":"Null Shape", 	
-			"1":"Point", 	
-			"3":"Polyline", 	
-			"5":"Polygon", 	
-			"8":"MultiPoint", 	
-			"11":"PointZ", 	
-			"13":"PolylineZ", 	
-			"15":"PolygonZ", 	
-			"18":"MultiPointZ", 	
-			"21":"PointM", 	
-			"23":"PolylineM", 	
-			"25":"PolygonM", 	
-			"28":"MultiPointM", 	
+			"0":"Null Shape",
+			"1":"Point",
+			"3":"Polyline",
+			"5":"Polygon",
+			"8":"MultiPoint",
+			"11":"PointZ",
+			"13":"PolylineZ",
+			"15":"PolygonZ",
+			"18":"MultiPointZ",
+			"21":"PointM",
+			"23":"PolylineM",
+			"25":"PolygonM",
+			"28":"MultiPointM",
 			"31":"MultiPatch"
-					} 	
+					}
 
 def get_upload_path(instance, filename):
     return instance.get_upload_path(filename)
@@ -76,8 +76,8 @@ class DataFile(Dated):
             # guess the srs
             proj_text = zip_file.open( proj[0] ).read()
             data['notes'] = proj_text
-            data['srs'] = '' 
-        else:  
+            data['srs'] = ''
+        else:
             data['srs'] = ''
         # give a default name and geometry type
         basename = os.path.splitext(contents[0])[0]
@@ -114,23 +114,6 @@ class Attribute(Named):
     data_type = models.CharField(max_length=100)
     def __unicode__(self):
         return "Attribute: %s" % self.name
-
-'''
-class UserName(models.Model):
-    # This is the only required field
-    user = models.ForeignKey(User, unique=True)
-
-    # The rest is completely up to you...
-    favorite_band = models.CharField(maxlength=100, blank=True)
-    favorite_cheese = models.CharField(maxlength=100, blank=True)
-    lucky_number = models.IntegerField()
-'''
-# still need the models for making site collections and site models
-# as well as designating terrain layers.
-
-
-
-
 
 
 
