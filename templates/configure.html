@@ -1,12 +1,13 @@
-{% extends 'webfinches/index.html' %}
+{% extends 'webfinches/review.html' %}
 {% load static %}
 
-{% block jslibs %}
-
+{% block css %}
+        <link rel="stylesheet" href="{% get_static_prefix %}css/home.css" type="text/css"/>
+        <link rel="stylesheet" href="{% get_static_prefix %}css/layers.css" type="text/css"/>
 {% endblock %}
 
 {% block subtitle %}
-    Configure Data Layers
+    Build Site Configurations
 {% endblock %}
 
 {% block layernavs %}
@@ -14,64 +15,15 @@
 {% endblock %}
 
 {% block content %}
-		
-		<form>
-				
-				
-				<!--header-->
-				
-				<div>
-					<div class="layerlist_column"><h1>Layers</h1></div>
-					<div class="layerlist_column"><h1>Projection</h1></div>
-					<div align="center" class="layerlist_column"><h1>EPSG Code</h1></div>
-					<div align="center" class="layerlist_column"><h1>Site Layer</h1></div>
-				</div>
-				
-				<!--end of header-->
-			
-			<div class="layerlist_column">
-			{% for item in layers %}
-					<div class="layerlist_row"> {{item}} </div> 
-				  	{% endfor %}
-			</div>
-			
-			<div class="layerlist_column">
-					{% for item in projections %}
-					<div class="layerlist_row"> {{item}} </div>
-				{% endfor %}
-			</div>
-			
-			<div class="layerlist_column">
-					{% for item in projections %}
-					<div align="center" class="layerlist_row">  <input type="text" name="Set Radius"/> </div>
-				{% endfor %}
-			</div>
-						
-			<div class="layerlist_column">
-			{% for item in layers %}
-				  <div align="center" class="layerlist_row"> <input type="checkbox"/></div> 
-				  {% endfor %}
-			</div>
-			
-		
-				<br /> <br />
-				<p> Set Radius: <input type="text" name="Set Radius"/></p>
-				<p align="center"><input type="submit" value="Configure" /></p>
-			
-			
-		</form>
-		
-		
-						<!--<div>
-					{% for item in projections %}
-				  <div> {{item}} </div> 
-				  {% endfor %}-->
-				  		
-<!--				<div class="show-layers">
-					{% for item in layers %}
-				  <div> {{item}} </div> 
-				  {% endfor %}
-				</div>-->
+  {% if layers %}
+  <div class="layerset col">
+    {% for layer in layers %}
+      {% include "webfinches/layer_block.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="layerset layerconfig col">
+  </div>
 {% endblock %}
 					
              
@@ -80,5 +32,5 @@
 {% block scripts %}
   <script type="text/javascript" src="{% get_static_prefix %}js/jquery-1.6.2.min.js"></script>
   <script type="text/javascript" src="{% get_static_prefix %}js/jquery-ui-1.8.16.custom.min.js"></script>
-  <script type="text/javascript" src="{% get_static_prefix %}js/loadPage.js"></script>
+  <script type="text/javascript" src="{% get_static_prefix %}js/siteBuilder.js"></script>
 {% endblock %}

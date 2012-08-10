@@ -94,28 +94,30 @@ def browse(request):
     # do I need to convert these to dicts?
     formset = LayerBrowseFormSet(initial=browsing_data)
     all_tags = Tag.objects.all()
-    c = {
+    context = {
             'formset': formset,
             'tags': all_tags,
             }
     return render_to_response(
             'webfinches/browse.html',
-            RequestContext( request, c ),
+            RequestContext( request, context ),
             )
 
 @login_required
 def configure(request):
-	# configure site layers
-	#layers = DataLayer.objects.all()
-	#layers = layers
-
-	context = {
-					'layers': layers,
-					'projections': projections,
-						}
-
-	return render_to_response(
-            'webfinches/browse/configure.html',
+    """A view that contains ajax scripts for sorting and dealing with layers,
+        in order to build SiteConfigurations
+    """
+    user = request.user
+    layers = DataLayer.objects.filter(author=user).order_by('-date_edited')
+    all_tags = Tag.objects.all()
+    context = {
+            'layers': layers,
+            'tags': all_tags,
+            }
+    print layers
+    return render_to_response(
+            'webfinches/configure.html',
             context,
             )
 
