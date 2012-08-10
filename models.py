@@ -78,7 +78,6 @@ class DataFile(Dated):
         """
         data = {}
         data['data_file_id'] = self.id
-
         abs_path = self.abs_path()
         # see if we need to extract it
         extract_dir = self.extract_path()
@@ -119,7 +118,14 @@ class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
-    layer_id = models.AutoField(primary_key=True)
+    def get_browsing_data(self):
+        obj = vars(self)
+        tags = self.tag_set.all()
+        if tags:
+            obj['tags'] = ' '.join( [t.name for t in tags] )
+        else:
+            obj['tags'] = ''
+        return obj
     def __unicode__(self):
         return "DataLayer: %s" % self.name
 
