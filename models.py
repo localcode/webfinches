@@ -3,6 +3,7 @@ import zipfile
 
 from django import forms
 from django.db import models
+from django.contrib import gis
 from django.contrib.auth.models import User
 from django.core import validators
 
@@ -146,5 +147,49 @@ class Attribute(Named):
     def __unicode__(self):
         return "Attribute: %s" % self.name
 
+class SiteConfiguration(Named, Authored, Dated, Noted):
+    """A model for storing the different site configurations that someone has
+    made. It must have a site_layer that defines the separate sites.
+        It can add other layers (these should maybe be ordered with
+        django-sortedm2m )
+        It has a radius and srs code.
+        the srs attribute is defined so that it could be proj or WKT text or an
+        EPSG code. It will be used to define the coordinate system for the
+        built sites.
+        This should maybe be immutable. If something is changed, it should make
+        a new instance, so that we always can track down the settings used for
+        a particular SiteSet.
+    """
+    site_layer = models.ForeignKey('DataLayer',
+            related_name='siteconfiguration_site')
+    other_layers = models.ManyToManyField('DataLayer',
+            related_name='siteconfiguration_other',
+            null=True, blank=True)
+    radius = models.IntegerField( default=1000 )
+    srs = models.CharField( max_length=500 )
+    def __unicode__(self):
+        return "SiteConfiguration: %s" % self.name
 
+class SiteSet(Dated, Authored):
+    """A model for managing a set of generated sites.
+        Someone can generate sites more than once from the same
+        SiteConfiguration.
+        A SiteSet has a set of Sites
+    """
+    configuration = models.ForeignKey('SiteConfiguration')
+
+class Site(models.Model):
+    """A model for managing an individual generated Site.
+        A Site belongs to a Site Set and has a set of LocalLayers
+    """
+    site_id = models.IntegerField()
+    site_set = models.ForeignKey('SiteSet')
+
+class LocalLayer(models.Model):
+    """A model for managing an individual generated layer in an individual
+    Site.
+        A LocalLayer belongs to a Site.
+    """
+    site = models.ForeignKey('Site')
+    origin_layer = models.ForeignKey('DataLayer')
 
