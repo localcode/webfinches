@@ -117,26 +117,26 @@ class DataFile(Dated):
         return data
     
     def get_srs(self):
-    	jsrs = {}
-        jsrs['data_file_id'] = self.id
-    	
+    	"""takes the prj data and sends it to the prj2epsg API.
+            The API returns the srs code if found.
+        """
+    	jason_srs = {}
     	prj_path = self.path_of_part('.prj')
         if prj_path:
         	prj_text = open(prj_path, 'r').read()
-            jsrs['notes'] = prj_text
             query = urlencode({
         		'exact' : False,
         		'error' : True,
-        		'terms' : prj_txt})
+        		'terms' : prj_text})
         	webres = urlopen('http://prj2epsg.org/search.json', query)
         	jres = json.loads(webres.read())
         	if jres['codes']:
-        		jsrs['message'] = 'An exact match was found'
-        		jsrs['srs'] = int(jres['codes'][0]['code'])
+        		jason_srs['message'] = 'An exact match was found'
+        		jason_srs['srs'] = int(jres['codes'][0]['code'])
         	else:
-        		jsrs['message'] = 'No exact match was found'
-            	jsrs['srs'] = 'No known Spatial Reference System'
-        return jsrs
+        		jason_srs['message'] = 'No exact match was found'
+            	jason_srs['srs'] = 'No known Spatial Reference System'
+        return jason_srs
 
 class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
