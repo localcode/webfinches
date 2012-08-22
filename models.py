@@ -5,12 +5,19 @@ from urllib2 import urlopen
 import json
 
 from django import forms
-from django.db import models
+from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 from django.core import validators
 
+
 # requires GeoDjango Libraries
 from django.contrib.gis.gdal import DataSource
+import django.contrib.gis
+#from django.contrib.gis.db import models
+
+from django.contrib.gis.gdal import OGRGeometry
+import django.contrib.gis.measure
+from django.contrib.gis.measure import D
 
 # the basepath for file uploads (needed to read shapefiles)
 from settings import MEDIA_ROOT
@@ -117,35 +124,116 @@ class DataFile(Dated):
         return data
     
     def get_srs(self):
-    	"""takes the prj data and sends it to the prj2epsg API.
-            The API returns the srs code if found.
+        """takes the prj data and sends it to the prj2epsg API.
+        The API returns the srs code if found.
         """
-    	jason_srs = {}
-    	prj_path = self.path_of_part('.prj')
+        json_srs = {}
+        prj_path = self.path_of_part('.prj')
         if prj_path:
-        	prj_text = open(prj_path, 'r').read()
+            prj_text = open(prj_path, 'r').read()
             query = urlencode({
-        		'exact' : False,
-        		'error' : True,
-        		'terms' : prj_text})
-        	webres = urlopen('http://prj2epsg.org/search.json', query)
-        	jres = json.loads(webres.read())
-        	if jres['codes']:
-        		jason_srs['message'] = 'An exact match was found'
-        		jason_srs['srs'] = int(jres['codes'][0]['code'])
-        	else:
-        		jason_srs['message'] = 'No exact match was found'
-            	jason_srs['srs'] = 'No known Spatial Reference System'
-        return jason_srs
+                'exact' : False,
+                'error' : True,
+                'terms' : prj_text})
+            webres = urlopen('http://prj2epsg.org/search.json', query)
+            jres = json.loads(webres.read())
+            if jres['codes']:
+                json_srs['message'] = 'An exact match was found'
+                json_srs['srs'] = int(jres['codes'][0]['code'])
+            else:
+                json_srs['message'] = 'No exact match was found'
+                json_srs['srs'] = 'No known Spatial Reference System'
+        return json_srs
+    
+    def get_centroids(self, spatial_ref):
+        '''
+        Gets the centroids of the site layer to do a distance query based on them.
+        Converts different type of geometries int point objects. 
+        '''
+        
+        shp_path = self.path_of_part('.shp')
+        site_ds = DataSource(shp_path)
+        site_layer = site_ds[0]
+        geoms = [ ]
+        for feature in site_layer:
+            #Geometries can only be transformed if they have a .prj file
+            if feature.geom.srs:
+                polygon = feature.geom.transform(spatial_ref,True)
+                #Get the centroids to calculate distances.
+                if polygon.geom_type == 'POINT':
+                    centroids = polygon
+                    geoms.append(centroids)
+                elif polygon.geom_type == 'POLYGON':
+                    centroids = polygon.centroid
+                    geoms.append(centroids)
+                #Linestrings and geometry collections can't return centroids,
+                #so we get the bbox and then the centroid.
+                elif polygon.geom_type == 'LINESTRING' or 'MULTIPOINT' or 'MULTILINESTRING' or 'MULTIPOLYGON':
+                    bbox = polygon.envelope.wkt
+                    centroids = OGRGeometry(bbox).centroid
+                    geoms.append(centroids)
+        return geoms
 
 class DataLayer(Named, Authored, Dated, Noted):
     geometry_type = models.CharField(max_length=50, null=True, blank=True)
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
     layer_id = models.AutoField(primary_key=True)
+    
+    #mpoly = models.MultiPolygonField()
+    objects = models.GeoManager() #added for spatial queries
+
     def __unicode__(self):
         return "DataLayer: %s" % self.name
 
+class SiteLayer(Named, Authored, Dated, Noted):
+    geometry_type = models.CharField(max_length=50, null=True, blank=True)
+    srs = models.CharField(max_length=50, null=True, blank=True)
+    files = models.ManyToManyField('DataLayer', null=True, blank=True )
+    layer_id = models.AutoField(primary_key=True)
+    radius = models.FloatField(max_length=10, null=True, blank=True)
+    
+    objects = models.GeoManager() #added for spatial queries
+    
+    def __unicode__(self):
+        return "DataLayer: %s" % self.name
+
+class SitesJson(Named, Authored, Dated, Noted):
+    """Do database queries, and get the geometries around the sites.
+    Generate GeoJson files from the geometries. 
+    """
+    sites = models.ManyToManyField('DataLayer', null=True, blank=True)
+    site_layer = models.ForeignKey('SiteLayer', null=True, blank=True)
+    radius = models.FloatField(max_length=10, null=True, blank=True)
+    geojson = models.TextField(null=True, blank=True)
+    objects = models.GeoManager()
+    
+    def __unicode__(self):
+        return "UploadEvent: %s" % self.date
+    
+    def get_sites_within(self, radius):
+        '''
+        Performs distance queries, and creates json files.
+        '''
+        sites_within_json = [ ]
+        for centroid in self:
+            # If DataLayer uses a projected coordinate system, this is allowed.
+            #Sites within the radius
+            sites_within = DataLayer.objects.filter(geom__distance_lte=(centroid, D(m=radius)))
+            sites_within_json.append(sites_within.json)
+        return sites_within_json
+
+    def get_sites_outside(self, radius):
+        '''
+        Performs distance queries, and creates json files.
+        '''
+        sites_outside_json = [ ]
+        for centroid in self:
+            #Sites outside the radius
+            sites_outside = DataLayer.objects.filter(geom__distance_gte=(centroid, D(m=radius)))
+            sites_outside_json.append(sites_within.json)
+        return sites_outside_json
+    
 class UploadEvent(models.Model):
     user = models.ForeignKey(User)
     date = models.DateTimeField(auto_now_add=True)

@@ -75,19 +75,19 @@ def review(request):
     if request.method == 'POST': # someone is giving us data
         formset = LayerReviewFormSet(request.POST)
         if formset.is_valid():
-        		for form in formset:
-        				# get the DataFile id from the form data
-        				data_file_id = form.cleaned_data['data_file_id']
-        				# now get the actual object associated with that id
-        				data_file = DataFile.objects.get(id=data_file_id)
-        				srs = form.cleaned_data['srs']
-        				layer = DataLayer(srs = srs)
-        				layer = form.save(commit=False)
-        				layer.author = user
-        				# the DataLayer must exist before we can add relations to it
-        				layer.save()
-        				layer.files.add(data_file) # add the relation
-        				layer.save() # resave the layer
+            for form in formset:
+            # get the DataFile id from the form data
+                data_file_id = form.cleaned_data['data_file_id']
+                # now get the actual object associated with that id
+                data_file = DataFile.objects.get(id=data_file_id)
+                srs = form.cleaned_data['srs']
+                layer = DataLayer(srs = srs)
+                layer = form.save(commit=False)
+                layer.author = user
+                # the DataLayer must exist before we can add relations to it
+                layer.save()
+                layer.files.add(data_file) # add the relation
+                layer.save() # resave the layer
 
     else: # we are asking them to review data
         # get the last upload of this user
@@ -130,15 +130,15 @@ def ajaxUpload(request):
     pass
 
 def create_account(request):
-	user=User.objects.get(username='carlos')
-	context = {
-					#'user': user,
-					#'password': password,
-						}
-	return render_to_response(
-            'webfinches/create_account.html',
-            context,
-            )
+    user=User.objects.get(username='carlos')
+    context = {
+            #'user': user,
+            #'password': password,
+                }
+    return render_to_response(
+        'webfinches/create_account.html',
+        context,
+        )
 
 layers = ['site','roads','parcels','selected sites']
 projections = ['wsg93','wsg93','tansverse mercator','']
@@ -146,70 +146,70 @@ projections = ['wsg93','wsg93','tansverse mercator','']
 
 individual_sites = [ ]
 for i in range(1,10):
-	individual_sites.append(str(i)+'.json')
+    individual_sites.append(str(i)+'.json')
 
 zip_file = ['sites.zip']
 api_download = ['https://github.com/localcode']
 
 @login_required
 def configure(request):
-	# configure site layers
-	#layers = DataLayer.objects.all()
-	#layers = layers
+    # configure site layers
+    #layers = DataLayer.objects.all()
+    #layers = layers
 
-	context = {
-					'layers': layers,
-					'projections': projections,
-						}
+    context = {
+            'layers': layers,
+            'projections': projections,
+                }
 
-	return render_to_response(
-            'webfinches/browse/configure.html',
-            context,
-            )
+    return render_to_response(
+        'webfinches/browse/configure.html',
+        context,
+        )
 
 @login_required
 def download(request):
-	#A view for downloading data.
+    #A view for downloading data.
 
-	# configure site layers
-	#layers = DataLayer.objects.all()
-	#layers = layers
+    # configure site layers
+    #layers = DataLayer.objects.all()
+    #layers = layers
 
 
-	context = {
-					'individual_sites': individual_sites,
-					'zip_file': zip_file,
-					'api_download': api_download,
-					#'user': request.User,
-						}
+    context = {
+            'individual_sites': individual_sites,
+            'zip_file': zip_file,
+            'api_download': api_download,
+            #'user': request.User,
+                }
 
 #views.login(POST)
 '''creating users?
 def create_account(username, email, password):
-	user = User.objects.create_user(username, email, password)
-	user.is_staff = False
-	user.save()
+    user = User.objects.create_user(username, email, password)
+    user.is_staff = False
+    user.save()
 
-		return render_to_response(
-            'webfinches/login/create_account.html',
-            context,
-            )
+    return render_to_response(
+        'webfinches/login/create_account.html',
+        context,
+        )
 
 def login(username, password):
     username = request.POST['username']
     password = request.POST['password']
     user = authenticate(username=username, password=password)
-		if user is not None:
-  	  if user.is_active:
-  	    print "You provided a correct username and password!"
-    	else:
-        print "Your account has been disabled!"
-		else:
-    	print "Your username and password were incorrect."
+    if user is not None:
+        if user.is_active:
+            print "You provided a correct username and password!"
+        else:
+            print "Your account has been disabled!"
+    else:
+        print "Your username and password were incorrect."
 
-	return render_to_response(
-            'webfinches/login.html',
-            context,
-            )
+    return render_to_response(
+        'webfinches/login.html',
+        context,
+        )
   '''
 
