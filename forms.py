@@ -43,7 +43,7 @@ class LayerReviewForm(forms.ModelForm):
 
     class Meta:
         model = DataLayer
-       	fields = ['name', 'notes', 'geometry_type', 'srs']
+        fields = ['name', 'notes', 'geometry_type', 'srs']
 
 class LayerBrowseForm(forms.ModelForm):
     """For browsing and editing layers generally"""
