@@ -11,12 +11,10 @@ from django.contrib.auth.models import User
 
 from webfinches.forms import *
 from webfinches.models import *
-from django.contrib.auth.views import login
-from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required
 
 
-def send_file_to_db(fobj):
+def send_file_to_db(obj):
     pass
 
 def handleShpFiles(username, layername, shp, dbf, prj, shx):
@@ -46,7 +44,6 @@ def upload(request):
     """A view for uploading new data.
     """
     user = request.user
-    #print request
     if request.method == 'POST':
         upload = UploadEvent(user=user)
         upload.save()
@@ -88,6 +85,7 @@ def review(request):
                 layer.save()
                 layer.files.add(data_file) # add the relation
                 layer.save() # resave the layer
+        return HttpResponseRedirect('/webfinches/configure/')
 
     else: # we are asking them to review data
         # get the last upload of this user
@@ -103,6 +101,32 @@ def review(request):
             'webfinches/review.html',
             RequestContext(request, c),
             )
+
+@login_required
+def configure(request):
+    '''
+    this is just a temporary placeholder to get information from DataLayers in the Database and
+    Display them in the configure page
+    '''
+    
+    user = request.user
+    upload = UploadEvent.objects.filter(user=user).order_by('-date')[0]
+    data_files = DataFile.objects.filter(upload=upload)
+    layer_data = [ f.get_layer_data() for f in data_files ]
+    formset = LayerReviewFormSet( initial=layer_data )
+    #context = {
+            #'layers': layers,
+            #'projections': projections,
+                #}
+    c = {
+            'formset':formset,
+            }
+    
+    return render_to_response(
+        'webfinches/configure.html',
+        RequestContext(request, c),
+
+        )
 
 # AJAX views for processing file data
 def logged(request):
@@ -137,33 +161,6 @@ def create_account(request):
                 }
     return render_to_response(
         'webfinches/create_account.html',
-        context,
-        )
-
-layers = ['site','roads','parcels','selected sites']
-projections = ['wsg93','wsg93','tansverse mercator','']
-
-
-individual_sites = [ ]
-for i in range(1,10):
-    individual_sites.append(str(i)+'.json')
-
-zip_file = ['sites.zip']
-api_download = ['https://github.com/localcode']
-
-@login_required
-def configure(request):
-    # configure site layers
-    #layers = DataLayer.objects.all()
-    #layers = layers
-
-    context = {
-            'layers': layers,
-            'projections': projections,
-                }
-
-    return render_to_response(
-        'webfinches/browse/configure.html',
         context,
         )
 

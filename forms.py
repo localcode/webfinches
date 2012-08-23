@@ -26,6 +26,8 @@ class ZipUploadForm(forms.ModelForm):
             raise forms.ValidationError('.zip uploads must contain .dbf files')
         if '.shx' not in filetypes:
             raise forms.ValidationError('.zip uploads must contain .shx files')
+        if type(zf)== 'NoneType':
+            raise forms.ValidationError('not a valid type')
         return zip_file
 
     def save(self, upload, commit=True):

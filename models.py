@@ -5,19 +5,14 @@ from urllib2 import urlopen
 import json
 
 from django import forms
-from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 from django.core import validators
 
-
 # requires GeoDjango Libraries
 from django.contrib.gis.gdal import DataSource
-import django.contrib.gis
-#from django.contrib.gis.db import models
-
 from django.contrib.gis.gdal import OGRGeometry
-import django.contrib.gis.measure
 from django.contrib.gis.measure import D
+from django.contrib.gis.db import models
 
 # the basepath for file uploads (needed to read shapefiles)
 from settings import MEDIA_ROOT
@@ -54,6 +49,24 @@ class Lookup(Named):
     class Meta:
         abstract=True
 
+class GeomType(models.Model):
+    """just putting names on models"""
+    geometry_type = models.CharField(max_length=200, null=True, blank=True)
+    class Meta:
+        abstract=True
+
+class Bboxes(models.Model):
+    """just putting names on models"""
+    bbox = models.TextField()
+    class Meta:
+        abstract=True
+
+class GeomFields(models.Model):
+    """just putting names on models"""
+    bbx = models.TextField()
+    class Meta:
+        abstract=True
+
 class DataFile(Dated):
     """Data files represent individual file uploads.
     They are used to construct DataLayers.
@@ -79,7 +92,11 @@ class DataFile(Dated):
         if not piece:
             return None
         else:
+            #path_of_part_list = [ ]
+            #for p in piece:
+                #path_of_part_list.append(p)
             return os.path.join( self.extract_path(), piece[0] )
+        #return path_of_part_list
     def __unicode__(self):
         return "DataFile: %s" % self.file.url
     def get_layer_data(self):
@@ -174,13 +191,23 @@ class DataFile(Dated):
                     geoms.append(centroids)
         return geoms
 
-class DataLayer(Named, Authored, Dated, Noted):
-    geometry_type = models.CharField(max_length=50, null=True, blank=True)
+class DataLayer(Named, Authored, Dated, Noted, GeomType):
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
     layer_id = models.AutoField(primary_key=True)
-    
-    #mpoly = models.MultiPolygonField()
+    fields = models.TextField()
+
+    objects = models.GeoManager() #added for spatial queries
+
+    def __unicode__(self):
+        return "DataLayer: %s" % self.name
+
+class SiteConfiguration(Named, Authored, Dated, Noted, GeomType):
+    srs = models.CharField(max_length=50, null=True, blank=True)
+    files = models.ManyToManyField('DataFile', null=True, blank=True )
+    layer_id = models.AutoField(primary_key=True)
+    fields = models.TextField()
+
     objects = models.GeoManager() #added for spatial queries
 
     def __unicode__(self):
@@ -192,7 +219,6 @@ class SiteLayer(Named, Authored, Dated, Noted):
     files = models.ManyToManyField('DataLayer', null=True, blank=True )
     layer_id = models.AutoField(primary_key=True)
     radius = models.FloatField(max_length=10, null=True, blank=True)
-    
     objects = models.GeoManager() #added for spatial queries
     
     def __unicode__(self):
