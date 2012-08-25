@@ -5,10 +5,12 @@ from urllib2 import urlopen
 import json
 
 from django import forms
-from django.db import models
 from django.contrib import gis
 from django.contrib.auth.models import User
 from django.core import validators
+from django.contrib.gis.db import models
+
+
 
 # requires GeoDjango Libraries
 from django.contrib.gis.gdal import DataSource
@@ -39,6 +41,24 @@ class Dated(models.Model):
 
 class Noted(models.Model):
     notes = models.TextField(null=True, blank=True)
+    class Meta:
+        abstract=True
+
+class GeomType(models.Model):
+    """adding geomtery type"""
+    geometry_type = models.CharField(max_length=200, null=True, blank=True)
+    class Meta:
+        abstract=True
+
+class Bboxes(models.Model):
+    """shapefile's bounding box"""
+    bbox = models.TextField()
+    class Meta:
+        abstract=True
+
+class GeomFields(models.Model):
+    """adding attribute fields"""
+    fields = models.TextField()
     class Meta:
         abstract=True
 
@@ -101,6 +121,7 @@ class DataFile(Dated):
         data['name'] = layer.name
         data['fields'] = layer.fields
         data['bbox'] = layer.extent.tuple
+        data['tags'] = ''
         if layer.srs:
             srs = layer.srs
             try:
@@ -118,31 +139,63 @@ class DataFile(Dated):
         return data
     
     def get_srs(self):
-    	"""takes the prj data and sends it to the prj2epsg API.
-            The API returns the srs code if found.
+        """takes the prj data and sends it to the prj2epsg API.
+        The API returns the srs code if found.
         """
-    	jason_srs = {}
-    	prj_path = self.path_of_part('.prj')
+    
+        api_srs = {}
+        prj_path = self.path_of_part('.prj')
         if prj_path:
-        	prj_text = open(prj_path, 'r').read()
+            prj_text = open(prj_path, 'r').read()
             query = urlencode({
-        		'exact' : False,
-        		'error' : True,
-        		'terms' : prj_text})
-        	webres = urlopen('http://prj2epsg.org/search.json', query)
-        	jres = json.loads(webres.read())
-        	if jres['codes']:
-        		jason_srs['message'] = 'An exact match was found'
-        		jason_srs['srs'] = int(jres['codes'][0]['code'])
-        	else:
-        		jason_srs['message'] = 'No exact match was found'
-            	jason_srs['srs'] = 'No known Spatial Reference System'
-        return jason_srs
+                'exact' : False,
+                'error' : True,
+                'terms' : prj_text})
+            webres = urlopen('http://prj2epsg.org/search.json', query)
+            jres = json.loads(webres.read())
+            if jres['codes']:
+                api_srs['message'] = 'An exact match was found'
+                api_srs['srs'] = int(jres['codes'][0]['code'])
+            else:
+                api_srs['message'] = 'No exact match was found'
+                ason_srs['srs'] = 'No known Spatial Reference System'
+        return api_srs
 
-class DataLayer(Named, Authored, Dated, Noted):
-    geometry_type = models.CharField(max_length=50, null=True, blank=True)
+    def get_centroids(self, spatial_ref):
+        '''
+        Gets the centroids of the site layer to do a distance query based on them.
+        Converts different type of geometries int point objects. 
+        '''
+        
+        shp_path = self.path_of_part('.shp')
+        site_ds = DataSource(shp_path)
+        site_layer = site_ds[0]
+        geoms = [ ]
+        for feature in site_layer:
+            #Geometries can only be transformed if they have a .prj file
+            if feature.geom.srs:
+                polygon = feature.geom.transform(spatial_ref,True)
+                #Get the centroids to calculate distances.
+                if polygon.geom_type == 'POINT':
+                    centroids = polygon
+                    geoms.append(centroids)
+                elif polygon.geom_type == 'POLYGON':
+                    centroids = polygon.centroid
+                    geoms.append(centroids)
+                #Linestrings and geometry collections can't return centroids,
+                #so we get the bbox and then the centroid.
+                elif polygon.geom_type == 'LINESTRING' or 'MULTIPOINT' or 'MULTILINESTRING' or 'MULTIPOLYGON':
+                    bbox = polygon.envelope.wkt
+                    centroids = OGRGeometry(bbox).centroid
+                    geoms.append(centroids)
+        return geoms
+
+class DataLayer(Named, Authored, Dated, Noted, GeomType):
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
+    tags = models.CharField(max_length=50, null=True, blank=True)
+    objects = models.GeoManager()
+
     def get_browsing_data(self):
         obj = vars(self)
         tags = self.tag_set.all()
@@ -191,6 +244,7 @@ class SiteConfiguration(Named, Authored, Dated, Noted):
             null=True, blank=True)
     radius = models.IntegerField( default=1000 )
     srs = models.CharField( max_length=500 )
+    
     def __unicode__(self):
         return "SiteConfiguration: %s" % self.name
 
@@ -200,6 +254,7 @@ class SiteSet(Dated, Authored):
         SiteConfiguration.
         A SiteSet has a set of Sites
     """
+
     configuration = models.ForeignKey('SiteConfiguration')
 
 class Site(models.Model):
