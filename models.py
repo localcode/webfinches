@@ -263,7 +263,6 @@ class Site(models.Model):
     """
     site_id = models.IntegerField()
     site_set = models.ForeignKey('SiteSet')
-    #test
 
 class LocalLayer(models.Model):
     """A model for managing an individual generated layer in an individual
