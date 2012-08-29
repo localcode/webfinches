@@ -15,19 +15,39 @@
 {% endblock %}
 
 {% block content %}
-  {% if layers %}
-  <div class="layerset col">
-    {% for layer in layers %}
-      {% include "webfinches/layer_block.html" %}
-    {% endfor %}
-  </div>
-  {% endif %}
-  <div class="layerset layerconfig col">
-  </div>
-{% endblock %}
-					
-             
 
+
+    
+    
+<form id="layerconfigure" action="/webfinches/configure/" method="POST" enctype="multipart/form-data">
+    
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+
+    {% if layers %}
+    <div class="layerset col">
+      {% for layer in layers %}
+        {% include "webfinches/layer_blocks.html" %}
+      {% endfor %}
+    </div>
+{% endif %}
+
+    <div><input type="submit" value="Upload New Configuration" /></div>
+    <div><h1> Site Configuration Name: <input type="text" name="name"/></h1></div>
+    <div> Set Radius: <input type="text" name="radius"/></div>
+    <div> Set SRS: <input type="text" name="srs"/></div>
+
+</form>
+
+<!--                  {% for form in formset %}
+                  <div class="layer">
+                    {{ form.as_p }}
+                  </div>
+                  {% endfor %}
+              </form>-->
+
+{% endblock %}
 
 {% block scripts %}
   <script type="text/javascript" src="{% get_static_prefix %}js/jquery-1.6.2.min.js"></script>
