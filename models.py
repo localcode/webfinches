@@ -61,12 +61,6 @@ class GeomFields(models.Model):
     fields = models.TextField()
     class Meta:
         abstract=True
-        
-class SiteLayerId(models.Model):
-    """adding attribute fields"""
-    site_id = models.IntegerField()
-    class Meta:
-        abstract=True
 
 class Lookup(Named):
     """name and slug"""
@@ -248,7 +242,8 @@ class SiteConfiguration(Named, Authored, Dated, Noted):
             related_name='siteconfiguration_other',
             null=True, blank=True)
     radius = models.IntegerField( default=1000 )
-    srs = models.CharField( max_length=500 )
+    srs = models.CharField( max_length=500, null=True, blank=True)
+    objects = models.GeoManager()
     
     def __unicode__(self):
         return "SiteConfiguration: %s" % self.name
