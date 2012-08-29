@@ -61,6 +61,12 @@ class GeomFields(models.Model):
     fields = models.TextField()
     class Meta:
         abstract=True
+        
+class SiteLayerId(models.Model):
+    """adding attribute fields"""
+    site_id = models.IntegerField()
+    class Meta:
+        abstract=True
 
 class Lookup(Named):
     """name and slug"""
@@ -195,7 +201,6 @@ class DataLayer(Named, Authored, Dated, Noted, GeomType):
     files = models.ManyToManyField('DataFile', null=True, blank=True )
     tags = models.CharField(max_length=50, null=True, blank=True)
     objects = models.GeoManager()
-
     def get_browsing_data(self):
         obj = vars(self)
         tags = self.tag_set.all()

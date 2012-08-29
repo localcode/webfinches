@@ -43,11 +43,12 @@ class LayerReviewForm(forms.ModelForm):
 
     class Meta:
         model = DataLayer
-        fields = ['name', 'notes', 'geometry_type', 'srs', 'tags']
+        fields = ['name', 'notes', 'geometry_type', 'srs', 'tags', 'data_file_id']
 
 class LayerBrowseForm(forms.ModelForm):
     """For browsing and editing layers generally"""
     #tags = forms.CharField()
+    
     class Meta:
         model = DataLayer
         fields = ['name', 'notes', 'srs','tags']
@@ -57,7 +58,7 @@ class SiteConfigurationForm(forms.ModelForm):
     radius = forms.IntegerField()
     class Meta:
         model = DataLayer
-        fields = ['name', 'srs', 'tags']
+        fields = ['name', 'srs','notes','geometry_type', 'tags']
 
 ZipFormSet = formset_factory(ZipUploadForm, extra=3)
 LayerReviewFormSet = formset_factory(LayerReviewForm, extra=0)
