@@ -191,22 +191,31 @@ def create_sites(request):
     Queries
     """
     user = request.user
-    site_layer = DataLayer.objects.filter(author=user).get(related_name='siteconfiguration_site')
-    try:
-        other_sites = DataLayer.objects.filter(author=user).get(related_name='siteconfiguration_other')
-    except DataLayer.DoesNotExist:
-        other_sites = None
+    if request.method == 'POST': # someone is editing site configuration
+        site_configurations = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')
+        # This one should create a SitSet
     
-    sites_within = DataLayer.objects.filter(geom__distance_lte=(site_layer, D(m=radius)))
-    sites_outside = DataLayer.objects.filter(geom__distance_gte=(site_layer, D(m=radius)))
+    else:
+        # We are browsing data
+        site_configurations = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')
+    
+    #site_layer = DataLayer.objects.filter(author=user).get(related_name='siteconfiguration_site')
+    #try:
+        #other_sites = DataLayer.objects.filter(author=user).get(related_name='siteconfiguration_other')
+    #except DataLayer.DoesNotExist:
+        #other_sites = None
+    
+    #sites_within = DataLayer.objects.filter(geom__distance_lte=(site_layer, D(m=radius)))
+    #sites_outside = DataLayer.objects.filter(geom__distance_gte=(site_layer, D(m=radius)))
 
-    context = {
-            'sites_within': sites_within,
-            'sites_outside': sites_outside,
+    c = {
+            'site_configurations': site_configurations,
+            #'sites_within': sites_within,
+            #'sites_outside': sites_outside,
             }
     return render_to_response(
-            'webfinches/get_sites.html',
-            context,
+            'webfinches/create_sites.html',
+            RequestContext(request, c),
             )
 
 @login_required
