@@ -16,14 +16,10 @@
 
 {% block content %}
 
-
-    
-    
 <form id="sitecreator" action="/webfinches/create_sites/" method="POST" enctype="multipart/form-data">
     
     {% csrf_token %}
     {{ formset.management_form }}
-
 
     {% if site_configurations %}
     <div class="layerset col">
@@ -37,18 +33,6 @@
     <div><input type="submit" value="Create Sites" /></div>
 
 </form>
-<!--
-                <form id="layerbrowser", action="." method="POST" enctype="multipast/form-data">
-                {% csrf_token %}
-                {{ formset.management_form }}
-                <input type="submit" value="Upload New Configuration" />
-                  {% for form in formset %}
-                  <div class="layer">
-                    {{ form.as_p }}
-                  </div>
-                  {% endfor %}
-                </form>
--->
 
 {% endblock %}
 

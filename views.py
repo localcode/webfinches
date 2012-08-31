@@ -4,8 +4,6 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 from django.contrib.auth import authenticate, login
-#from django.utils import timezone
-
 from django.contrib.auth.models import User
 
 from webfinches.forms import *
@@ -13,6 +11,11 @@ from webfinches.models import *
 from django.contrib.auth.views import login
 from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required
+
+import django.contrib.gis
+from django.contrib.gis.geos import *
+from django.contrib.gis.db import models
+from django.contrib.gis.measure import D
 
 
 def index(request):
@@ -168,7 +171,7 @@ def configure(request):
             configuration.other_layers.add(other_layer)
         configuration.save() # Re-save the SiteConfiguration
         
-        return HttpResponseRedirect('/webfinches/configure/')
+        return HttpResponseRedirect('/webfinches/create_sites/')
 
     else:
         # We are browsing data
@@ -198,15 +201,20 @@ def create_sites(request):
     else:
         # We are browsing data
         site_configurations = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')
-    
-    #site_layer = DataLayer.objects.filter(author=user).get(related_name='siteconfiguration_site')
-    #try:
-        #other_sites = DataLayer.objects.filter(author=user).get(related_name='siteconfiguration_other')
-    #except DataLayer.DoesNotExist:
-        #other_sites = None
-    
-    #sites_within = DataLayer.objects.filter(geom__distance_lte=(site_layer, D(m=radius)))
-    #sites_outside = DataLayer.objects.filter(geom__distance_gte=(site_layer, D(m=radius)))
+        
+        site_configurations_test = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')[0]
+        site_layer = site_configurations_test.site_layer
+        other_layer = site_configurations_test.other_layers.all()[0]
+        radius = site_configurations_test.radius
+        
+        #sites_within = SiteConfiguration.objects.filter(other_layers__distance_lte=(site_layer, D(m=radius)))
+        #sites_within = SiteConfiguration.objects.filter(site_layer__distance_gte=(pnt, D(km=radius)))
+        
+        print site_layer, other_layer, radius, #sites_within
+        
+        pnt = fromstr('POINT(-96.876369 29.905320)', srid=4326)
+        pnt2 = fromstr('POINT(-96.0 29.000000)', srid=4326)
+        print pnt2.distance(pnt)
 
     c = {
             'site_configurations': site_configurations,
