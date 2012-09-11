@@ -130,7 +130,6 @@ class DataFile(Dated):
         data['bbox'] = layer.extent.tuple
         data['tags'] = ''
         data['ogr_geom'] = layer.get_geoms(geos=True)
-        print data['ogr_geom']
         if layer.srs:
             srs = layer.srs
             try:
@@ -199,10 +198,11 @@ class DataFile(Dated):
                     geoms.append(centroids)
         return geoms
 
-class DataLayer(Named, Authored, Dated, Noted, GeomType, OGRGeom):
+class DataLayer(Named, Authored, Dated, Noted, GeomType):
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
     tags = models.CharField(max_length=50, null=True, blank=True)
+    ogr_geom = models.GeometryField(null=True, blank=True)
     objects = models.GeoManager()
     def get_browsing_data(self):
         obj = vars(self)

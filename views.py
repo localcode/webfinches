@@ -59,12 +59,16 @@ def review(request):
     user = request.user
     if request.method == 'POST': # someone is giving us data
         formset = LayerReviewFormSet(request.POST)
+        print formset
         if formset.is_valid():
             for form in formset:
             # get the DataFile id from the form data
                 data_file_id = form.cleaned_data['data_file_id']
+                #print form['name']
+                print data_file_id
                 # now get the actual object associated with that id
                 data_file = DataFile.objects.get(id=data_file_id)
+                print data_file
                 srs = form.cleaned_data['srs']
                 tags = form.cleaned_data['tags']
                 layer = DataLayer(srs = srs, tags=tags)
@@ -81,6 +85,7 @@ def review(request):
         upload = UploadEvent.objects.filter(user=user).order_by('-date')[0]
         data_files = DataFile.objects.filter(upload=upload)
         layer_data = [ f.get_layer_data() for f in data_files ]
+        print layer_data
         formset = LayerReviewFormSet( initial=layer_data )
 
     c = {
@@ -177,6 +182,8 @@ def configure(request):
     else:
         # We are browsing data
         layers = DataLayer.objects.filter(author=user).order_by('-date_edited')
+        #layer = DataLayer.objects.filter(author=user)[0]
+        #print layer.get_browsing_data()
         all_tags = Tag.objects.all()
     
     c = {
