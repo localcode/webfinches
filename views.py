@@ -16,6 +16,7 @@ import django.contrib.gis
 from django.contrib.gis.geos import *
 from django.contrib.gis.db import models
 from django.contrib.gis.measure import D
+from django.contrib.gis.gdal import OGRGeometry
 
 
 def index(request):
@@ -197,6 +198,7 @@ def create_sites(request):
     if request.method == 'POST': # someone is editing site configuration
         site_configurations = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')
         # This one should create a SitSet
+        
     
     else:
         # We are browsing data
@@ -204,7 +206,7 @@ def create_sites(request):
         
         site_configurations_test = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')[0]
         site_layer = site_configurations_test.site_layer
-        other_layer = site_configurations_test.other_layers.all()[0]
+        other_layer = site_configurations_test.other_layers.all()#[0]
         radius = site_configurations_test.radius
         
         #sites_within = SiteConfiguration.objects.filter(other_layers__distance_lte=(site_layer, D(m=radius)))
@@ -212,9 +214,18 @@ def create_sites(request):
         
         print site_layer, other_layer, radius, #sites_within
         
+        #pnt = OGRGeometry('POINT(-96.876369 29.905320)')
+        #pnt2 = OGRGeometry('POINT(-96.0 29.000000)')
         pnt = fromstr('POINT(-96.876369 29.905320)', srid=4326)
         pnt2 = fromstr('POINT(-96.0 29.000000)', srid=4326)
-        print pnt2.distance(pnt)
+        print pnt2.distance(pnt) #GEOS Geometry objects.... #Try it with gdal API...
+        print pnt.geom_type
+        print site_layer.get_browsing_data()
+        #a = DataLayer.objects.filter(author=user)[0]
+        #print a.get_browsing_data()
+        #print DataLayer.get_browsing_data()
+        #print [ f.get_browsing_data() for f in DataLayer ]
+        #print DataSource(DataLayer.files)
 
     c = {
             'site_configurations': site_configurations,
@@ -242,3 +253,14 @@ def download(request):
             #'user': request.User,
             }
 
+def create_from_shapefile(self, path):
+    ds = DataSource(path)
+    layer = ds[0]
+    for feature in layer:
+        DataLayer.objects.create(geometry=feature['geometry'], field=feature['field'])
+'''
+from django.contrib.gis.geos import GEOSGeometry
+poly = GEOSGeometry('POLYGON(( 10 10, 10 20, 20 20, 20 15, 10 10))')
+z = Zipcode(code=77096, poly=poly)
+z.save()
+'''

@@ -62,6 +62,13 @@ class GeomFields(models.Model):
     class Meta:
         abstract=True
 
+class OGRGeom(models.Model):
+    """adding attribute fields"""
+    ogr_geom = models.GeometryField()
+    objects = models.GeoManager()
+    class Meta:
+        abstract=True
+
 class Lookup(Named):
     """name and slug"""
     slug = models.SlugField(max_length=100, null=True, blank=True)
@@ -85,8 +92,8 @@ class DataFile(Dated):
     def path_of_part(self, ext):
         """give an file extension of a specific file within the zip file, and
         get an absolute path to the extracted file with that extension.
-            Assumes that the contents have been extracted.
-            Returns `None` if the file can't be found
+        Assumes that the contents have been extracted.
+        Returns `None` if the file can't be found
         """
         pieces = os.listdir( self.extract_path() )
         piece = [p for p in pieces if ext in p]
@@ -98,7 +105,7 @@ class DataFile(Dated):
         return "DataFile: %s" % self.file.url
     def get_layer_data(self):
         """extracts relevant data for building LayerData objects
-            meant to be used as initial data for LayerReview Forms
+        meant to be used as initial data for LayerReview Forms
         """
         data = {}
         data['data_file_id'] = self.id
@@ -122,6 +129,8 @@ class DataFile(Dated):
         data['fields'] = layer.fields
         data['bbox'] = layer.extent.tuple
         data['tags'] = ''
+        data['ogr_geom'] = layer.get_geoms(geos=True)
+        print data['ogr_geom']
         if layer.srs:
             srs = layer.srs
             try:
@@ -164,7 +173,7 @@ class DataFile(Dated):
     def get_centroids(self, spatial_ref):
         '''
         Gets the centroids of the site layer to do a distance query based on them.
-        Converts different type of geometries int point objects. 
+        Converts different type of geometries int point objects.
         '''
         
         shp_path = self.path_of_part('.shp')
@@ -190,7 +199,7 @@ class DataFile(Dated):
                     geoms.append(centroids)
         return geoms
 
-class DataLayer(Named, Authored, Dated, Noted, GeomType):
+class DataLayer(Named, Authored, Dated, Noted, GeomType, OGRGeom):
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
     tags = models.CharField(max_length=50, null=True, blank=True)
@@ -272,3 +281,9 @@ class LocalLayer(models.Model):
     site = models.ForeignKey('Site')
     origin_layer = models.ForeignKey('DataLayer')
 
+def create_from_shapefile(self, path):
+    ds = DataSource(path)
+    layer = ds[0]
+    for feature in layer:
+        DataLayer.objects.create(geometry=feature['geometry'], field=feature['field'])
+        
