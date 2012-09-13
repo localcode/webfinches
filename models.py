@@ -10,8 +10,6 @@ from django.contrib.auth.models import User
 from django.core import validators
 from django.contrib.gis.db import models
 
-
-
 # requires GeoDjango Libraries
 from django.contrib.gis.gdal import DataSource
 
@@ -59,6 +57,12 @@ class Bboxes(models.Model):
 class GeomFields(models.Model):
     """adding attribute fields"""
     fields = models.TextField()
+    class Meta:
+        abstract=True
+        
+class FilePath(models.Model):
+    """adding attribute fields"""
+    pathy = models.TextField()
     class Meta:
         abstract=True
 
@@ -129,7 +133,8 @@ class DataFile(Dated):
         data['fields'] = layer.fields
         data['bbox'] = layer.extent.tuple
         data['tags'] = ''
-        data['ogr_geom'] = layer.get_geoms(geos=True)
+        data['pathy'] = shape_path
+
         if layer.srs:
             srs = layer.srs
             try:
@@ -198,11 +203,10 @@ class DataFile(Dated):
                     geoms.append(centroids)
         return geoms
 
-class DataLayer(Named, Authored, Dated, Noted, GeomType):
+class DataLayer(Named, Authored, Dated, Noted, GeomType,FilePath):
     srs = models.CharField(max_length=50, null=True, blank=True)
     files = models.ManyToManyField('DataFile', null=True, blank=True )
     tags = models.CharField(max_length=50, null=True, blank=True)
-    ogr_geom = models.GeometryField(null=True, blank=True)
     objects = models.GeoManager()
     def get_browsing_data(self):
         obj = vars(self)

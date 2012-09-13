@@ -16,7 +16,6 @@ import django.contrib.gis
 from django.contrib.gis.geos import *
 from django.contrib.gis.db import models
 from django.contrib.gis.measure import D
-from django.contrib.gis.gdal import OGRGeometry
 
 
 def index(request):
@@ -32,7 +31,6 @@ def upload(request):
     """A view for uploading new data.
     """
     user = request.user
-    #print request
     if request.method == 'POST':
         upload = UploadEvent(user=user)
         upload.save()
@@ -59,16 +57,12 @@ def review(request):
     user = request.user
     if request.method == 'POST': # someone is giving us data
         formset = LayerReviewFormSet(request.POST)
-        print formset
         if formset.is_valid():
             for form in formset:
             # get the DataFile id from the form data
                 data_file_id = form.cleaned_data['data_file_id']
-                #print form['name']
-                print data_file_id
                 # now get the actual object associated with that id
                 data_file = DataFile.objects.get(id=data_file_id)
-                print data_file
                 srs = form.cleaned_data['srs']
                 tags = form.cleaned_data['tags']
                 layer = DataLayer(srs = srs, tags=tags)
@@ -85,7 +79,6 @@ def review(request):
         upload = UploadEvent.objects.filter(user=user).order_by('-date')[0]
         data_files = DataFile.objects.filter(upload=upload)
         layer_data = [ f.get_layer_data() for f in data_files ]
-        print layer_data
         formset = LayerReviewFormSet( initial=layer_data )
 
     c = {
@@ -182,9 +175,9 @@ def configure(request):
     else:
         # We are browsing data
         layers = DataLayer.objects.filter(author=user).order_by('-date_edited')
-        #layer = DataLayer.objects.filter(author=user)[0]
-        #print layer.get_browsing_data()
+        layer = DataLayer.objects.filter(author=user)[0]
         all_tags = Tag.objects.all()
+        
     
     c = {
             'layers': layers,
@@ -204,7 +197,7 @@ def create_sites(request):
     user = request.user
     if request.method == 'POST': # someone is editing site configuration
         site_configurations = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')
-        # This one should create a SitSet
+        # This one should create a SiteSet
         
     
     else:
@@ -215,29 +208,23 @@ def create_sites(request):
         site_layer = site_configurations_test.site_layer
         other_layer = site_configurations_test.other_layers.all()#[0]
         radius = site_configurations_test.radius
+        print site_layer, other_layer, radius
+        path_site_layer = site_layer.get_browsing_data()['pathy']
         
-        #sites_within = SiteConfiguration.objects.filter(other_layers__distance_lte=(site_layer, D(m=radius)))
-        #sites_within = SiteConfiguration.objects.filter(site_layer__distance_gte=(pnt, D(km=radius)))
+        ds_site_layer = DataSource( path_site_layer )
+        layer_site_layer = ds_site_layer[0]
+        print ds_site_layer, layer_site_layer
+        site_geoms = layer_site_layer.get_geoms(geos=True)
+        print site_geoms
         
-        print site_layer, other_layer, radius, #sites_within
-        
-        #pnt = OGRGeometry('POINT(-96.876369 29.905320)')
-        #pnt2 = OGRGeometry('POINT(-96.0 29.000000)')
         pnt = fromstr('POINT(-96.876369 29.905320)', srid=4326)
-        pnt2 = fromstr('POINT(-96.0 29.000000)', srid=4326)
-        print pnt2.distance(pnt) #GEOS Geometry objects.... #Try it with gdal API...
-        print pnt.geom_type
-        print site_layer.get_browsing_data()
-        #a = DataLayer.objects.filter(author=user)[0]
-        #print a.get_browsing_data()
-        #print DataLayer.get_browsing_data()
-        #print [ f.get_browsing_data() for f in DataLayer ]
-        #print DataSource(DataLayer.files)
+        for geom in site_geoms:
+            print geom.distance(pnt)
+        
+        
 
     c = {
             'site_configurations': site_configurations,
-            #'sites_within': sites_within,
-            #'sites_outside': sites_outside,
             }
     return render_to_response(
             'webfinches/create_sites.html',
@@ -260,14 +247,3 @@ def download(request):
             #'user': request.User,
             }
 
-def create_from_shapefile(self, path):
-    ds = DataSource(path)
-    layer = ds[0]
-    for feature in layer:
-        DataLayer.objects.create(geometry=feature['geometry'], field=feature['field'])
-'''
-from django.contrib.gis.geos import GEOSGeometry
-poly = GEOSGeometry('POLYGON(( 10 10, 10 20, 20 20, 20 15, 10 10))')
-z = Zipcode(code=77096, poly=poly)
-z.save()
-'''
