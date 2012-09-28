@@ -261,14 +261,18 @@ class SiteConfiguration(Named, Authored, Dated, Noted):
     def __unicode__(self):
         return "SiteConfiguration: %s" % self.name
 
-class SiteSet(Dated, Authored):
+class SiteSet(Dated, Authored): #, Named): I need to add the name of the site configuration!
     """A model for managing a set of generated sites.
         Someone can generate sites more than once from the same
         SiteConfiguration.
         A SiteSet has a set of Sites
     """
 
-    configuration = models.ForeignKey('SiteConfiguration')
+    configuration = models.ForeignKey('SiteConfiguration') #just quickly getting something ready for venice.
+    geoJson = models.TextField() # if it breaks, I need to get rid of this frome the DB
+    
+    def __unicode__(self):
+        return "SiteConfiguration: %s" % self.name
 
 class Site(models.Model):
     """A model for managing an individual generated Site.
