@@ -261,7 +261,7 @@ class SiteConfiguration(Named, Authored, Dated, Noted):
     def __unicode__(self):
         return "SiteConfiguration: %s" % self.name
 
-class SiteSet(Dated, Authored): #, Named): I need to add the name of the site configuration!
+class SiteSet(Dated, Authored, Named): #I need to add the name of the site configuration!
     """A model for managing a set of generated sites.
         Someone can generate sites more than once from the same
         SiteConfiguration.
