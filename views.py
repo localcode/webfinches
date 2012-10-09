@@ -204,7 +204,7 @@ def create_sites(request):
         site_configurations = SiteConfiguration.objects.filter(author=user).order_by('-date_edited')
         configuration_id = request.POST.get("create_sites")
         
-        # This will give me the selected site and perform distance queries.
+        # This gives us the selected site and perform distance queries.
         site_configurations_selected = SiteConfiguration.objects.get(id=configuration_id)
         srs = site_configurations_selected.srs
         radius = site_configurations_selected.radius
@@ -242,55 +242,46 @@ def create_sites(request):
             site_dict = {"type": "Layer", "name":"site", "contents":site_geojson_dict}
             # this gives me a list of all the site geometries...
             site_dicts.append(site_dict)
-        temporary_geo_json = site_dicts[2] # this is the 'finished' list of site dicts
-        print temporary_geo_json
-        
-        # Also iterate through all the site layers??? and make radius distance not bogus...
         
         test_site_number = 3
+        temporary_geo_json = site_dicts[test_site_number] # this is the 'finished' list of site dicts
+        
+        print site_dicts
+        # Also iterate through all the site layers??? and make radius distance not bogus...
+        
+        
         # Maybe Create a Range of number of sites and loop with this??? The max number can
         # be the len of geometries???
         # Also maybe I don't need to get the centroid, I can do queries with polygons?
         
         site = site_centroids[test_site_number]
-        if len(other_layers) != 0:
-            other_features_list = [ ]
-            other_layer_list = [ ]
+        if len(other_layers) != 0: # if there's multiple layers in the siteConfiguration, iterate through them.
             other_layers_query = [ ]
             for other_layer in other_layers:
                 path_other_layer = other_layer.get_browsing_data()['pathy']
                 ds_site_layer = DataSource( path_other_layer )
                 layer_other_layer = ds_site_layer[0]
                 other_layer_fields = layer_other_layer.fields
-                other_layer_list.append(layer_other_layer)
-                other_centroids = [ ]
                 other_layers_features = [ ]
                 
+                features_dict = {}
                 for feature in layer_other_layer:
                     #Geometries can only be transformed if they have a .prj file
                     if feature.geom.srs:
                         polygon = feature.geom.transform(srs,True)
-                        #Get the centroid to calculate distances.
-                        other_centroids.append(get_centroid(polygon))
+                        #Get the centroid to calculate distances and creates a dictionary with centroids as keys, features as vals
+                        features_dict[get_centroid(polygon)] = feature 
+                other_centroids = features_dict.keys()
                 for centroid in other_centroids:
                     distance = math.sqrt(((site.x-centroid.x)**2)+((site.y-centroid.y)**2))
                     if distance <= radius:
-                        #create dictionaries based on layer.... that way I can retrieve the list...
-                        ############################################
-                        # This is not appending the right geometries.... I guess it just appends the
-                        # first one...... how can I append all of them??? Maybe get its FID???
-                        # I think I might have to create a dictionary and then get all the
-                        # attributes based on the query..... fuck!
-                        # something like retireve the key for the selected value... key could be
-                        # feature ID???
-                        other_layers_features.append(feature)
+                        other_layers_features.append(features_dict[centroid])
                 other_layers_query.append(other_layers_features)
-                # Here I am going to start creating the dictionaries with the GDAL API
-                
+            
+            # Create dictionaries with the GDAL API
             other_layers_dicts = [ ]
             if len(other_layers_query) > 0:
                 for other_layers in other_layers_query:
-                    #print other_layers_
                     other_layer_name = other_layers[0].layer_name
                     fields = other_layers[0].fields
                     other_field_values = [[geom.get(field) for field in fields] for geom in other_layers]
@@ -311,27 +302,13 @@ def create_sites(request):
                         other_dicts.append(other_dict)
                     other_layers_dicts.append(other_dicts)
             
-            # here I need to add an if then else in case there are no other_layers!!!!
             all_layers = list(itertools.chain.from_iterable(other_layers_dicts))
             all_layers.insert(0, temporary_geo_json) #change temporary geoJson for the actual site!!!!
-            # I need to add the if more than site make layer collection!!!!
             geoJSON = {"layers":all_layers, "type":"LayerCollection"} 
-            print geoJSON
-                    # dict.keys()
-                    # Returns list of dictionary dict's keys
-                    # dict.update(dict2)
-                    # Adds dictionary dict2's key-values pairs to dict
-                    # dict.values()
-                    # Returns list of dictionary dict2's values
-                        
-                    # flatten a list using a listcomp with two 'for'
-                    # vec = [[1,2,3], [4,5,6], [7,8,9]]
-                    # [num for elem in vec for num in elem]
-                    # [1, 2, 3, 4, 5, 6, 7, 8, 9]
             
-            # Here I am gonna try to save the SiteSets!!!
+            # Save SitSets
             sites_set = SiteSet(author = user, configuration = site_configurations_selected,
-                                geoJson = other_layers_dicts, name = test_site_number)
+                                geoJson = other_layers_dicts, name = str(site_configurations_selected.name) + str(test_site_number))
             #sites_set.save() # We create the object
             # the question is.... if once I save this as a string, am I gonna be able to
             # access them as a list??? Do I need to save them as m2m????
@@ -343,6 +320,19 @@ def create_sites(request):
             # for other_layer in other_layers:
             #    configuration.other_layers.add(other_layer)
             #configuration.save() # Re-save the SiteConfiguration
+            return HttpResponseRedirect('/webfinches/create_sites/')
+            
+        else: # if there's only a site layer, create a geoJSON dict for a single layer.
+            # add the if more than site make layer collection ????
+            i = 0
+            for site in site_dicts:
+                geoJSON = {"layers":[site], "type":"LayerCollection"}
+                i += 1
+                # Save SiteSets
+                sites_set = SiteSet(author = user, configuration = site_configurations_selected,
+                                    geoJson = geoJSON, name = str(site_configurations_selected.name) + str(i))
+                #sites_set.save() # We create the object
+
             return HttpResponseRedirect('/webfinches/create_sites/')
     
     else:
