@@ -246,7 +246,7 @@ def create_sites(request):
         def get_geo_json(site_dicts, site_centroids, site_number, other_layers):
             site_geojson = site_dicts[site_number]
             site = site_centroids[site_number]
-            if len(other_layers) != 0: # if there's multiple layers in the siteConfiguration, iterate through them.
+            if len(other_layers) != 0: # if there are multiple layers in the siteConfiguration, iterate through them.
                 other_layers_query = [ ]
                 for other_layer in other_layers:
                     path_other_layer = other_layer.get_browsing_data()['pathy']
@@ -297,7 +297,7 @@ def create_sites(request):
                             other_layers_dicts.append(other_dicts)
                 
                 all_layers = list(itertools.chain.from_iterable(other_layers_dicts))
-                all_layers.insert(0, site_geojson) #change temporary geoJson for the actual site!!!!
+                all_layers.insert(0, site_geojson) # Add the site_geoJson to the layers
                 geoJSON = {"layers":all_layers, "type":"LayerCollection"}
                 return geoJSON
                 
@@ -329,9 +329,7 @@ def create_sites(request):
                 #configuration.save() # Re-save the SiteConfiguration
             return HttpResponseRedirect('/webfinches/create_sites/')
             
-        else: # if there's only a site layer, create a geoJSON dict for a single layer.
-            
-            # add the if more than 1 site make layer collection ????
+        else: # if there's only a site layer and no other_layers, create a geoJSON dict for a single layer.
             i = 0
             for site in site_dicts:
                 geoJSON = {"layers":[site], "type":"LayerCollection"}
