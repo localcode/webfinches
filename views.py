@@ -211,9 +211,6 @@ def create_sites(request):
         
         site_layer = site_configurations_selected.site_layer
         other_layers = site_configurations_selected.other_layers.all()
-        
-        # this makes the radius bogus....
-        radius = (site_configurations_selected.radius)*7
         path_site_layer = site_layer.get_browsing_data()['pathy']
         ds_site_layer = DataSource( path_site_layer )
         layer_site_layer = ds_site_layer[0]
@@ -243,94 +240,106 @@ def create_sites(request):
             # this gives me a list of all the site geometries...
             site_dicts.append(site_dict)
         
-        test_site_number = 3
-        temporary_geo_json = site_dicts[test_site_number] # this is the 'finished' list of site dicts
+        ##################################
+        # maybe I don't need to get the centroid, I can do queries with polygons?
         
-        print site_dicts
-        # Also iterate through all the site layers??? and make radius distance not bogus...
-        
-        
-        # Maybe Create a Range of number of sites and loop with this??? The max number can
-        # be the len of geometries???
-        # Also maybe I don't need to get the centroid, I can do queries with polygons?
-        
-        site = site_centroids[test_site_number]
-        if len(other_layers) != 0: # if there's multiple layers in the siteConfiguration, iterate through them.
-            other_layers_query = [ ]
-            for other_layer in other_layers:
-                path_other_layer = other_layer.get_browsing_data()['pathy']
-                ds_site_layer = DataSource( path_other_layer )
-                layer_other_layer = ds_site_layer[0]
-                other_layer_fields = layer_other_layer.fields
-                other_layers_features = [ ]
-                
-                features_dict = {}
-                for feature in layer_other_layer:
-                    #Geometries can only be transformed if they have a .prj file
-                    if feature.geom.srs:
-                        polygon = feature.geom.transform(srs,True)
-                        #Get the centroid to calculate distances and creates a dictionary with centroids as keys, features as vals
-                        features_dict[get_centroid(polygon)] = feature 
-                other_centroids = features_dict.keys()
-                for centroid in other_centroids:
-                    distance = math.sqrt(((site.x-centroid.x)**2)+((site.y-centroid.y)**2))
-                    if distance <= radius:
-                        other_layers_features.append(features_dict[centroid])
-                other_layers_query.append(other_layers_features)
-            
-            # Create dictionaries with the GDAL API
-            other_layers_dicts = [ ]
-            if len(other_layers_query) > 0:
-                for other_layers in other_layers_query:
-                    other_layer_name = other_layers[0].layer_name
-                    fields = other_layers[0].fields
-                    other_field_values = [[geom.get(field) for field in fields] for geom in other_layers]
-                    other_field_attributes = [dict(itertools.izip(other_layer_fields, field_value)) for field_value in other_field_values]
-                    other_attributes_dict = [dict([("type","feature"), ("properties", attribute)])for attribute in other_field_attributes]
-                    other_json = [ ]
-                    other_dicts = [ ]
-                    for feature in other_layers:
+        def get_geo_json(site_dicts, site_centroids, site_number, other_layers):
+            site_geojson = site_dicts[site_number]
+            site = site_centroids[site_number]
+            if len(other_layers) != 0: # if there's multiple layers in the siteConfiguration, iterate through them.
+                other_layers_query = [ ]
+                for other_layer in other_layers:
+                    path_other_layer = other_layer.get_browsing_data()['pathy']
+                    ds_site_layer = DataSource( path_other_layer )
+                    layer_other_layer = ds_site_layer[0]
+                    other_layer_fields = layer_other_layer.fields
+                    other_layers_features = [ ]
+                    
+                    features_dict = {}
+                    for feature in layer_other_layer:
+                        #Geometries can only be transformed if they have a .prj file
                         if feature.geom.srs:
                             polygon = feature.geom.transform(srs,True)
-                            other_json.append(polygon.json)
-                        other_json_dict = [dict([("geometry", geom)])for geom in other_json]
-                    other_json_dicts = list(itertools.izip(other_json_dict, other_attributes_dict))
-                    list_other_json_dicts = [list(itertools.chain(other_json_dict)) for other_json_dict in other_json_dicts]
-                    for othr_json_dict in list_other_json_dicts:
-                        other_geojson_dict = {"type": "Feature Collection", "features":othr_json_dict}
-                        other_dict = {"type": "Layer", "name":other_layer_name, "contents":other_geojson_dict}
-                        other_dicts.append(other_dict)
-                    other_layers_dicts.append(other_dicts)
-            
-            all_layers = list(itertools.chain.from_iterable(other_layers_dicts))
-            all_layers.insert(0, temporary_geo_json) #change temporary geoJson for the actual site!!!!
-            geoJSON = {"layers":all_layers, "type":"LayerCollection"} 
-            
-            # Save SitSets
-            sites_set = SiteSet(author = user, configuration = site_configurations_selected,
-                                geoJson = other_layers_dicts, name = str(site_configurations_selected.name) + str(test_site_number))
-            #sites_set.save() # We create the object
-            # the question is.... if once I save this as a string, am I gonna be able to
-            # access them as a list??? Do I need to save them as m2m????
-            # We add the m2m relationship with other_layes
-            # maybe I can save a list of siteset appending them individually like othe_layers
-            # but this needs to be m2m....
-            # maybe I had to generate all the site_dicts when I created the site_config and
-            # then just retrieve the selected one???
-            # for other_layer in other_layers:
-            #    configuration.other_layers.add(other_layer)
-            #configuration.save() # Re-save the SiteConfiguration
+                            #Get the centroid to calculate distances and creates a dictionary with centroids as keys, features as vals
+                            features_dict[get_centroid(polygon)] = feature
+                    
+                    other_centroids = features_dict.keys()
+                    for centroid in other_centroids:
+                        # Maybe instead of doing this dist query I can turn them into GEOS geom and do distance queries, now that I have dicts.
+                        distance = math.sqrt(((site.x-centroid.x)**2)+((site.y-centroid.y)**2))
+                        if distance <= radius:
+                            other_layers_features.append(features_dict[centroid])
+                    other_layers_query.append(other_layers_features)
+                
+                # Create dictionaries with the GDAL API
+                other_layers_dicts = [ ]
+                if len(other_layers_query) > 0:
+                    for other_layers in other_layers_query:
+                        if len(other_layers)>0:
+                            other_layer_name = other_layers[0].layer_name
+                            fields = other_layers[0].fields
+                            other_field_values = [[geom.get(field) for field in fields] for geom in other_layers]
+                            other_field_attributes = [dict(itertools.izip(other_layer_fields, field_value)) for field_value in other_field_values]
+                            other_attributes_dict = [dict([("type","feature"), ("properties", attribute)])for attribute in other_field_attributes]
+                            other_json = [ ]
+                            other_dicts = [ ]
+                            for feature in other_layers:
+                                if feature.geom.srs:
+                                    polygon = feature.geom.transform(srs,True)
+                                    other_json.append(polygon.json)
+                                other_json_dict = [dict([("geometry", geom)])for geom in other_json]
+                            other_json_dicts = list(itertools.izip(other_json_dict, other_attributes_dict))
+                            list_other_json_dicts = [list(itertools.chain(other_json_dict)) for other_json_dict in other_json_dicts]
+                            for othr_json_dict in list_other_json_dicts:
+                                other_geojson_dict = {"type": "Feature Collection", "features":othr_json_dict}
+                                other_dict = {"type": "Layer", "name":other_layer_name, "contents":other_geojson_dict}
+                                other_dicts.append(other_dict)
+                            other_layers_dicts.append(other_dicts)
+                
+                all_layers = list(itertools.chain.from_iterable(other_layers_dicts))
+                all_layers.insert(0, site_geojson) #change temporary geoJson for the actual site!!!!
+                geoJSON = {"layers":all_layers, "type":"LayerCollection"}
+                return geoJSON
+                
+        if len(other_layers) > 0:
+            i = 0
+            for i in range(len(site_centroids)):
+                geoJSON = get_geo_json(site_dicts, site_centroids, i, other_layers)
+                i += 1
+                print geoJSON
+                
+                #######################
+                # Now... instead of writing the geoJsons as texts, I need to figure out a way to save them as .txt files and upload them!!
+                
+                # Save SitSets
+                sites_set = SiteSet(author = user, configuration = site_configurations_selected,
+                                    geoJson = geoJSON, name = str(site_configurations_selected.name) + ' / ' + str(i)
+                                    + ' / ' + str(site_configurations_selected.date_added))
+                #sites_set.save() # We create the object
+                
+                # once I save this as a string, am I gonna be able to
+                # access them as a list??? Do I need to save them as m2m????
+                # add the m2m relationship with other_layers
+                # maybe I can save a list of siteset appending them individually like othe_layers
+                # but this needs to be m2m....
+                # maybe I have to generate all the site_dicts when I created the site_config and
+                # then just retrieve the selected one???
+                # for other_layer in other_layers:
+                #    configuration.other_layers.add(other_layer)
+                #configuration.save() # Re-save the SiteConfiguration
             return HttpResponseRedirect('/webfinches/create_sites/')
             
         else: # if there's only a site layer, create a geoJSON dict for a single layer.
-            # add the if more than site make layer collection ????
+            
+            # add the if more than 1 site make layer collection ????
             i = 0
             for site in site_dicts:
                 geoJSON = {"layers":[site], "type":"LayerCollection"}
                 i += 1
                 # Save SiteSets
                 sites_set = SiteSet(author = user, configuration = site_configurations_selected,
-                                    geoJson = geoJSON, name = str(site_configurations_selected.name) + str(i))
+                                    geoJson = geoJSON, name = str(site_configurations_selected.name) + ' / ' + str(i)
+                                    + ' / ' + str(site_configurations_selected.date_added))
                 #sites_set.save() # We create the object
 
             return HttpResponseRedirect('/webfinches/create_sites/')
@@ -350,7 +359,6 @@ def create_sites(request):
 @login_required
 def download(request):
     #A view for downloading data.
-
     # configure site layers
     #layers = DataLayer.objects.all()
     #layers = layers
