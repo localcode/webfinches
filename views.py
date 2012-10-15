@@ -2,6 +2,7 @@ import os
 import math
 import itertools
 from itertools import *
+import json
 
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, redirect
@@ -306,8 +307,8 @@ def create_sites(request):
             for i in range(len(site_centroids)):
                 geoJSON = get_geo_json(site_dicts, site_centroids, i, other_layers)
                 i += 1
-                print geoJSON
                 
+                print geoJSON
                 #######################
                 # Now... instead of writing the geoJsons as texts, I need to figure out a way to save them as .txt files and upload them!!
                 
@@ -327,6 +328,10 @@ def create_sites(request):
                 # for other_layer in other_layers:
                 #    configuration.other_layers.add(other_layer)
                 #configuration.save() # Re-save the SiteConfiguration
+            #print json.dumps(geoJSON)
+            #print geoJSON
+            #print (str(geoJSON))
+            #print (json.dumps({'layers': 'type'}))
             return HttpResponseRedirect('/webfinches/create_sites/')
             
         else: # if there's only a site layer and no other_layers, create a geoJSON dict for a single layer.
