@@ -219,7 +219,8 @@ def create_sites(request):
         layer_site_fields = layer_site_layer.fields
         site_field_values = [[geom.get(field) for field in layer_site_fields] for geom in layer_site_layer]
         field_attributes = [dict(itertools.izip(layer_site_fields, field_value)) for field_value in site_field_values]
-        site_attributes_dict = [dict([("type","feature"), ("properties", attribute)])for attribute in field_attributes]
+        print field_attributes
+        site_attributes_dict = [dict([("type","Feature"), ("properties", attribute)])for attribute in field_attributes]
         site_centroids = [ ]
         site_json = [ ]
         site_dicts = [ ]
@@ -232,11 +233,27 @@ def create_sites(request):
                 #Get the centroid to calculate distances.
                 site_centroids.append(get_centroid(polygon))
         geom_json_dict = [dict([("geometry", geom)])for geom in site_json]
+
         
+        test = { }
+        t = [ ]
+        m = -1
+        for g in site_json:
+            m += 1
+            test['geometry'] = g
+            test['type'] = 'Feature'
+            for z in field_attributes:
+                test['properties'] = z
+            #test['properties'] = field_attributes[m]
+            t.append(test)
+
+            print test
+        print t
         site_json_dicts = list(itertools.izip(geom_json_dict,site_attributes_dict))
+        #print site_json_dicts
         list_site_json_dicts = [list(itertools.chain(site_json_dict)) for site_json_dict in site_json_dicts]
         for site_json_dictionary in list_site_json_dicts:
-            site_geojson_dict = {"type": "Feature Collection", "features":site_json_dictionary}
+            site_geojson_dict = {"type": "FeatureCollection", "features":site_json_dictionary}
             site_dict = {"type": "Layer", "name":"site", "contents":site_geojson_dict}
             # this gives me a list of all the site geometries...
             site_dicts.append(site_dict)
@@ -340,6 +357,7 @@ def create_sites(request):
                 geoJSON = {"layers":[site], "type":"LayerCollection"}
                 i += 1
                 # Save SiteSets
+                #print geoJSON
                 sites_set = SiteSet(author = user, configuration = site_configurations_selected,
                                     geoJson = geoJSON, name = str(site_configurations_selected.name) + ' / ' + str(i)
                                     + ' / ' + str(site_configurations_selected.date_added))
